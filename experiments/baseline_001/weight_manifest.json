@@ -1,0 +1,25 @@
+{
+  "repository": "yeungchenwa/FontDiffuser-Gradio",
+  "revision": "7bd89f3932f30e0b0062b4ba852a4270a20fd0e4",
+  "files": [
+    {
+      "path": "ckpt/content_encoder.pth",
+      "size": 4765643,
+      "sha256": "e5b52582473579031bd0f935abbb9a3e5cb3727dccc25e75f77d1f41d3cbb3ff"
+    },
+    {
+      "path": "ckpt/style_encoder.pth",
+      "size": 82410027,
+      "sha256": "82eb56abc37ebf7e662d1141a45d8a54ad4bc0ee8aa749c4bb7bc7bddb6cca46"
+    },
+    {
+      "path": "ckpt/unet.pth",
+      "size": 315147685,
+      "sha256": "6bde1920ac8d843edbfffa6e6befedc5da39f753b927ce272cfc85cf99dcbfdb"
+    }
+  ],
+  "download_notes": [
+    "Initial Hugging Face transfers retried after network failures.",
+    "Author Google Drive downloads independently matched the same SHA-256 for UNet and style encoder."
+  ]
+}

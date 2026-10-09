@@ -1,0 +1,275 @@
+{
+  "repository": "https://github.com/yeungchenwa/FontDiffuser",
+  "commit": "7b28ce9c3b357f4fb23296622f458cf169803539",
+  "download_method": "GitHub raw files, pinned commit",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "6a06f8bf4a7788ce1eca0b0ca4f878258968d6d7eab8c7308468df658be13a3a"
+    },
+    {
+      "path": "configs/fontdiffuser.py",
+      "sha256": "e2c6fea6b7b8a52162f37678012578e137976d2ebdf1a773e6c8c2a1e7e13771"
+    },
+    {
+      "path": "data_examples/sampling/example_content.jpg",
+      "sha256": "96df9ce0d125be82972d2ee2a7942c1fcfdda067d023eba467de50c915ef6ae7"
+    },
+    {
+      "path": "data_examples/sampling/example_style.jpg",
+      "sha256": "c005c20ada2f7cd52536f5b27339055d920f87c2b55b3e1dd73d8707b98b8378"
+    },
+    {
+      "path": "data_examples/train/ContentImage/\u6c2e.jpg",
+      "sha256": "9aa271d15c6dad534f7e9811ebaeb27effa8c3c7d8fbddc1dd87ec694c174d35"
+    },
+    {
+      "path": "data_examples/train/ContentImage/\u6f6e.jpg",
+      "sha256": "f89ca01b45a94d9dc32697b9ad3181addc89ce394a6af31aee43c19230b340c0"
+    },
+    {
+      "path": "data_examples/train/ContentImage/\u8236.jpg",
+      "sha256": "dfd7f0b9f0f6f4dce7f5ddf08f1ea7401ee4c6528de79f0e1293d9551507593b"
+    },
+    {
+      "path": "data_examples/train/ContentImage/\u9540.jpg",
+      "sha256": "25bfc0308d4eff837cfaaff5b746aa4dcdcbf1c7299084d21fb34ac56b94838b"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZGuanJKSJW/FZGuanJKSJW+\u6c2e.jpg",
+      "sha256": "59c10d6c3e32babb16e326895d4b33b93b5b450d481326d0c248ab049226f224"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZGuanJKSJW/FZGuanJKSJW+\u6f6e.jpg",
+      "sha256": "9b1a2c6b2005c62d6d513596ebec72a3400fb49c274bc26c95e937d7e6d14d64"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZGuanJKSJW/FZGuanJKSJW+\u8236.jpg",
+      "sha256": "39260e65a29d324e9e47609d0a9247e01f311d4c2a8e6a96e4294d68823c255f"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZGuanJKSJW/FZGuanJKSJW+\u9540.jpg",
+      "sha256": "fafd72d8434a639ce6d765a76e8fb8ab43de85f607e533e2319f76c957569223"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZOuYHGXSJW/FZOuYHGXSJW+\u6c2e.jpg",
+      "sha256": "82e0d10a09079f76ad8c6cb8f6d8300aa33ce2da4dd47d484b135a252ef52089"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZOuYHGXSJW/FZOuYHGXSJW+\u6f6e.jpg",
+      "sha256": "cdc46a9baa92c332c5103aec0af3be1d4da040d1f70631d98708a91134dc7800"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZOuYHGXSJW/FZOuYHGXSJW+\u8236.jpg",
+      "sha256": "dac11d6f752577160fd34178f8fd81cfd8d2f64a79dbf72905e04d0003cac709"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZOuYHGXSJW/FZOuYHGXSJW+\u9540.jpg",
+      "sha256": "dd70d5f56bd8a8a22a066c264326b0a7cced092113d5d420ffea9efb19179b94"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZZCHJW/FZZCHJW+\u6c2e.jpg",
+      "sha256": "34381380366e3e69db2566ff7c91da8acffe2f7054547356aba3d1255a828da5"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZZCHJW/FZZCHJW+\u6f6e.jpg",
+      "sha256": "12b593b805fcdc0f39144030e431165915fed996998c159a1a27471ebd16fcbc"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZZCHJW/FZZCHJW+\u8236.jpg",
+      "sha256": "c097861881a53149fa49fac5e8e5133f353be97d3f9eabd62ebfdbf5ab33ed0f"
+    },
+    {
+      "path": "data_examples/train/TargetImage/FZZCHJW/FZZCHJW+\u9540.jpg",
+      "sha256": "4a16b1d4734dfd13e87c46934d7d5f7c901fd736bc6578f6a7ff7ac70b9059b4"
+    },
+    {
+      "path": "dataset/collate_fn.py",
+      "sha256": "8c8e0e01b28db6a1dad21702b3092a03269d1bedcb79f53c479f2f3312b23b7f"
+    },
+    {
+      "path": "dataset/font_dataset.py",
+      "sha256": "e051b0ec323afb258c7033a32b1144fa9f919b8757f08929c51a45eca8261aac"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u58e4.jpg",
+      "sha256": "fd7a21764bbbf3e938aae5e4d686916fd5063bcf333334d653bb41b4ddd87024"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u5a9a.jpg",
+      "sha256": "028a3fe614c8c9883d041ba8e9ebbc2a51ea8cf35d96c0b52f0b6107d985d9da"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u6a80.jpg",
+      "sha256": "c90d851ef3541c6c896d919ab0ffbfe8a9552227b98a4ed0c60680c19d19dc4e"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u6b1f.jpg",
+      "sha256": "8e00832c739bd8190671426ab172116d97d9562739236a490a78e02258176db1"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u7a57.jpg",
+      "sha256": "c7a1c4d6095bd5cf0dc11ec0b10ffd15da572648b062aeff508c51670e07e890"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u7c4d.jpg",
+      "sha256": "bda298eaacb9a60c6c3331347e894c13bb1e8caad4b808f83b968ab527cdb23f"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u7c4d_1.jpg",
+      "sha256": "e90ea5bbdecc80a9728d910e7b655db81e87713e5108c7cc0d002c1ae5efbaf8"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u8713.jpg",
+      "sha256": "09c86dd0b8e3bc4d872608e9f1768867d2deb3da8e89894c353dcdad02be929d"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u8c44.jpg",
+      "sha256": "4f58fa9b7cabab6e1da4257a065e0c50b4ef5efd0b62f9ee9565ea71b8673a95"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u95e1.jpg",
+      "sha256": "b2f6c2d32a05c61da9fa84cbec00fe0caa1c6d008c6a0a5b7b61f979a4fe3611"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u96d5.jpg",
+      "sha256": "ac9933e62121871311c71e144c51a050443ee46b1a216479a7ace601f24a16be"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u97a3.jpg",
+      "sha256": "faa8b31791a08a9ccf3f4899edc70b4af203751d3967d6e057f387e5037a570a"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u99a8.jpg",
+      "sha256": "2b1b5256229b50edad6dca329a5fef303086ac83734c46c982a02dc6ae99b836"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u9cb8.jpg",
+      "sha256": "998c9fa5fdedbe35bb02fccd6de53784108c726da6cae9cba1767f530dc09855"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u9de2.jpg",
+      "sha256": "2c017935cf95c1b27ccfd239f3d636afa12f4f5cefdade31728aea59f03de0f0"
+    },
+    {
+      "path": "figures/ref_imgs/ref_\u9e70.jpg",
+      "sha256": "3fa7d9a1dd2eccc836fc2d5a96f08b92ecc629c418f8a56d5112b61c3f877ce3"
+    },
+    {
+      "path": "figures/source_imgs/source_\u7068.jpg",
+      "sha256": "1db64afdb620ad2d259ce57b4efbbfb04e8e6bce15c5774ca94973f978ba5789"
+    },
+    {
+      "path": "figures/source_imgs/source_\u91c5.jpg",
+      "sha256": "96df9ce0d125be82972d2ee2a7942c1fcfdda067d023eba467de50c915ef6ae7"
+    },
+    {
+      "path": "figures/source_imgs/source_\u946b.jpg",
+      "sha256": "4081d61082e02b956a9e484d3374ac69befb58df095761a763f417bf2e58aeb1"
+    },
+    {
+      "path": "figures/source_imgs/source_\u947b.jpg",
+      "sha256": "150919f3fac574b362e88315911a2ac8b69fc5c888192967235392e975125b99"
+    },
+    {
+      "path": "gradio_app.py",
+      "sha256": "38a28ddd904be4761845c8b88b072237c67b6fb50a3e42ba90b0e4ed71e84915"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "ba12af7225e55f402ec2b337bb6971ebfc45cc1964d4ea51dc2af9e160e8e945"
+    },
+    {
+      "path": "sample.py",
+      "sha256": "0f876635512cc807e0ebae19a49e9cc7225bd8f5ea3bf23c541b63760e8de825"
+    },
+    {
+      "path": "scripts/sample_content_character.sh",
+      "sha256": "7f2d81d02658e756754a6808601dd7afcaa9e5c0586aef4c234090cd31f0e63d"
+    },
+    {
+      "path": "scripts/sample_content_image.sh",
+      "sha256": "09995847d85c98f7d90a3760df279aef5c68ad7eced6583464d39abcbb5b01c8"
+    },
+    {
+      "path": "scripts/train_phase_1.sh",
+      "sha256": "922b6e0560bd77ea9e73d25a418ae05c8ab4d8dcde880caabd7ffdb9250e4489"
+    },
+    {
+      "path": "scripts/train_phase_2.sh",
+      "sha256": "7856e0788b713fc33de17c43a82f5c8d21d0aaabd6d3711e2b2bbb0e796303d7"
+    },
+    {
+      "path": "src/__init__.py",
+      "sha256": "a0d4f9cf8fa63e948dd18c93da849fde27a1abfa140b397cce3c825b534fa96a"
+    },
+    {
+      "path": "src/build.py",
+      "sha256": "f015cca23f98199bfec37068edf420a0f8bd1147d0e01b920247bca2f92457c7"
+    },
+    {
+      "path": "src/criterion.py",
+      "sha256": "d4a1ab3a45e9dc9fa8a4f2b4d62f1ba7bde5f4c9f62998dcf55e57b1c7f326d8"
+    },
+    {
+      "path": "src/dpm_solver/dpm_solver_pytorch.py",
+      "sha256": "ef51bf04fe81547c546aee9b6cee0c8a80181d6934512ba372e6afdc17a298b4"
+    },
+    {
+      "path": "src/dpm_solver/pipeline_dpm_solver.py",
+      "sha256": "93e315c026af99ac7e853a284ea25bdc7271cf1599a5ea81438d95901be585c2"
+    },
+    {
+      "path": "src/model.py",
+      "sha256": "47262f7176cffeb6e718120d33bdfec8b7e63dbf4c60797930aed49a6d31ac22"
+    },
+    {
+      "path": "src/modules/__init__.py",
+      "sha256": "15ce32a8e6af81813091e99955410d3343942b73131650e147510d6201ee6cf9"
+    },
+    {
+      "path": "src/modules/attention.py",
+      "sha256": "1892f66fa8358db878da0967e9b5a5acc29671b8aec1e4b4d02b7251b6a2991f"
+    },
+    {
+      "path": "src/modules/content_encoder.py",
+      "sha256": "14a7b16f72b6bdb3d0f84782a4f0d1c26e770a8a452306c51dd198e642512914"
+    },
+    {
+      "path": "src/modules/embeddings.py",
+      "sha256": "8fa194dfc7873901d245c1faa722ed2a366e2493edfaeabd385bd0e04a81c82f"
+    },
+    {
+      "path": "src/modules/resnet.py",
+      "sha256": "d49d5a9290fc2cd867ed2a9233a0a57b1970090d0a67be57abf92fa3f87a9263"
+    },
+    {
+      "path": "src/modules/scr.py",
+      "sha256": "81d4efd9de812041fd4e4778750bded84abb3a21dabd0f2fc77512962ebfacf4"
+    },
+    {
+      "path": "src/modules/scr_modules.py",
+      "sha256": "8d0fce2e9a2cb6b626251c1d0d2edb88d0ac268061ed7c20a57eefcfb8809694"
+    },
+    {
+      "path": "src/modules/style_encoder.py",
+      "sha256": "c137dea13c1553ad0bbd34142f44f1ac6ae28c29b1325d1aa842226d911bffb1"
+    },
+    {
+      "path": "src/modules/unet.py",
+      "sha256": "b5aa536c1931c683a87a1237462e8424a21fc35830675ed704cc1e105202037e"
+    },
+    {
+      "path": "src/modules/unet_blocks.py",
+      "sha256": "9a0089ee5e820c270e7dc9be9087a6d8bd791cbe634e2dfe9ea348d9207c718a"
+    },
+    {
+      "path": "train.py",
+      "sha256": "8ae04f281ade329e732385021434c639ec424175fba85444ca3e00362c48e183"
+    },
+    {
+      "path": "utils.py",
+      "sha256": "59dd14dbd25b9fbca9b1138ecf65f43b50fc8fc3ae5c61648dd294bc55aff880"
+    }
+  ]
+}

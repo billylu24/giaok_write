@@ -1,0 +1,91 @@
+{
+  "status": "completed",
+  "kind": "official_random_initialization_training_smoke",
+  "steps": 20,
+  "dataset": "Official font examples: 3 font styles x 4 characters = 12 targets; not real personal handwriting.",
+  "checkpoint": "global_step_20",
+  "losses": [
+    {
+      "step": 1,
+      "loss": 1.681368112564087
+    },
+    {
+      "step": 2,
+      "loss": 2.4593348503112793
+    },
+    {
+      "step": 3,
+      "loss": 1.2756965160369873
+    },
+    {
+      "step": 4,
+      "loss": 2.08359694480896
+    },
+    {
+      "step": 5,
+      "loss": 1.3607282638549805
+    },
+    {
+      "step": 6,
+      "loss": 1.7783945798873901
+    },
+    {
+      "step": 7,
+      "loss": 1.6419789791107178
+    },
+    {
+      "step": 8,
+      "loss": 1.9440101385116577
+    },
+    {
+      "step": 9,
+      "loss": 1.306354284286499
+    },
+    {
+      "step": 10,
+      "loss": 1.086416244506836
+    },
+    {
+      "step": 11,
+      "loss": 1.057148814201355
+    },
+    {
+      "step": 12,
+      "loss": 1.7293161153793335
+    },
+    {
+      "step": 13,
+      "loss": 1.3009625673294067
+    },
+    {
+      "step": 14,
+      "loss": 1.6543325185775757
+    },
+    {
+      "step": 15,
+      "loss": 1.4138147830963135
+    },
+    {
+      "step": 16,
+      "loss": 1.4840728044509888
+    },
+    {
+      "step": 17,
+      "loss": 1.5673162937164307
+    },
+    {
+      "step": 18,
+      "loss": 0.8628103733062744
+    },
+    {
+      "step": 19,
+      "loss": 0.9728482365608215
+    },
+    {
+      "step": 20,
+      "loss": 1.4652808904647827
+    }
+  ],
+  "last_loss": 1.4652808904647827,
+  "losses_finite": true
+}

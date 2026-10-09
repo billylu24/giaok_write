@@ -1,0 +1,114 @@
+[
+  {
+    "id": "FontDiffuser",
+    "title": "FontDiffuser: One-Shot Font Generation via Denoising Diffusion with Multi-Scale Content Aggregation and Style Contrastive Learning",
+    "venue": "AAAI 2024",
+    "pdf_url": "https://arxiv.org/pdf/2312.12142",
+    "code_url": "https://github.com/yeungchenwa/FontDiffuser",
+    "status": "downloaded",
+    "sha256": "724a19b8fa251f710cbde495dabc5cba4394002eccc609374d6bdf7bd5ad38f5",
+    "file": "papers/FontDiffuser.pdf",
+    "pdfinfo": "Creator:         TeX\nProducer:        pdfTeX-1.40.25\nCreationDate:    Tue Dec 19 17:54:21 2023 PST\nModDate:         Tue Dec 19 17:54:21 2023 PST\nCustom Metadata: yes\nMetadata Stream: no\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           13\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       6632983 bytes\nOptimized:       no\nPDF version:     1.5\n"
+  },
+  {
+    "id": "One-DM",
+    "title": "One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation",
+    "venue": "ECCV 2024",
+    "pdf_url": "https://arxiv.org/pdf/2409.04004",
+    "code_url": "https://github.com/dailenson/One-DM",
+    "status": "downloaded",
+    "sha256": "0be077eec5527a3194d352f733321fc220a485421fd663cd5438522fcbb1a350",
+    "file": "papers/One-DM.pdf",
+    "pdfinfo": "Title:           \nSubject:         \nKeywords:        \nAuthor:          \nCreator:         LaTeX with hyperref\nProducer:        pdfTeX-1.40.25\nCreationDate:    Wed Sep 11 17:41:26 2024 PDT\nModDate:         Wed Sep 11 17:41:26 2024 PDT\nCustom Metadata: yes\nMetadata Stream: no\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           40\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       12408193 bytes\nOptimized:       no\nPDF version:     1.6\n"
+  },
+  {
+    "id": "HFH-Font",
+    "title": "HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution",
+    "venue": "ACM TOG 43(6), 2024",
+    "pdf_url": "https://arxiv.org/pdf/2410.06488",
+    "code_url": "",
+    "status": "downloaded",
+    "sha256": "d9ad22bad65cfc9d2b46b076eb1be66941cd10ff1bc13a7cb984ca3aec96cb77",
+    "file": "papers/HFH-Font.pdf",
+    "pdfinfo": "Title:           HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution\nSubject:         -  Computing methodologies  ->  Image representations.Shape modeling.\nCreator:         LaTeX with acmart 2023/03/30 v1.90 Typesetting articles for the Association for Computing Machinery and hyperref 2023-04-22 v7.00x Hypertext links for LaTeX\nProducer:        pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) kpathsea version 6.3.5\nCreationDate:    Wed Oct  9 18:31:10 2024 PDT\nModDate:         Wed Oct  9 18:31:10 2024 PDT\nCustom Metadata: yes\nMetadata Stream: yes\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           16\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       7975570 bytes\nOptimized:       no\nPDF version:     1.5\n"
+  },
+  {
+    "id": "TGC-Diff",
+    "title": "Template-Guided Cascaded Diffusion for Stylized Handwritten Chinese Text-Line Generation",
+    "venue": "ICDAR 2025",
+    "pdf_url": "https://link.springer.com/content/pdf/10.1007/978-3-032-04614-7_9.pdf",
+    "code_url": "https://github.com/newbie2niubility/TGC-Diff",
+    "status": "downloaded",
+    "sha256": "683a17d145ebe511ea9649c2cd7a04a72c83c919b9733a17b10abbb25765001c",
+    "file": "papers/TGC-Diff.pdf",
+    "pdfinfo": "Title:           Template-Guided Cascaded Diffusion for Stylized Handwritten Chinese Text-Line Generation\nSubject:         Document Analysis and Recognition –  ICDAR 2025, doi:10.1007/978-3-032-04614-7_9\nKeywords:        handwritten text-line generation; style disentanglement; diffusion model\nAuthor:          Honglie Wang \nCreator:         Springer\nProducer:        Acrobat Distiller 10.1.8 (Windows); modified using iTextSharp™ 5.5.13.4 ©2000-2024 iText Group NV (AGPL-version); modified using iText® Core 7.2.3 (AGPL version) ©2000-2022 iText Group NV; modified using iText® Core 7.2.3 (AGPL version) ©2000-2022 iText Group NV; modified using iText® Core 7.2.3 (AGPL version) ©2000-2022 iText Group NV; modified using iText® Core 7.2.3 (AGPL version) ©2000-2022 iText Group NV; modified using iText® Core 7.2.3 (AGPL version) ©2000-2022 iText Group NV; modified using iText® Core 7.2.3 (AGPL version) ©2000-2022 iText Group NV; modified using iText® Core 7.2.5 (AGPL version) ©2000-2023 iText Group NV\nCreationDate:    Fri Sep  5 22:59:23 2025 PDT\nModDate:         Fri Aug 21 06:57:04 2026 PDT\nCustom Metadata: yes\nMetadata Stream: yes\nTagged:          yes\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           18\nEncrypted:       no\nPage size:       439.37 x 666.142 pts\nPage rot:        0\nFile size:       5013587 bytes\nOptimized:       yes\nPDF version:     1.6\n",
+    "publication_note": "ICDAR 2025；下载的 Springer PDF 版权年份为 2026。"
+  },
+  {
+    "id": "DiffBrush",
+    "title": "Beyond Isolated Words: Diffusion Brush for Handwritten Text-Line Generation",
+    "venue": "ICCV 2025",
+    "pdf_url": "https://openaccess.thecvf.com/content/ICCV2025/papers/Dai_Beyond_Isolated_Words_Diffusion_Brush_for_Handwritten_Text-Line_Generation_ICCV_2025_paper.pdf",
+    "code_url": "",
+    "status": "downloaded",
+    "sha256": "5b2f11eee3c94113f71e0dadec8ac34c26ae39d3fd931b6a0629c767270366ff",
+    "file": "papers/DiffBrush.pdf",
+    "pdfinfo": "Title:           Beyond Isolated Words: Diffusion Brush for Handwritten Text-Line Generation\nSubject:         IEEE International Conference on Computer Vision\nAuthor:          Gang Dai; Yifan Zhang; Yutao Qin; Qiangya Guo; Shuangping Huang; Shuicheng Yan\nProducer:        pikepdf 9.11.0\nCustom Metadata: no\nMetadata Stream: yes\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           11\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       1111927 bytes\nOptimized:       no\nPDF version:     1.7\n"
+  },
+  {
+    "id": "GAR-Font",
+    "title": "Beyond Patches: Global-aware Autoregressive Model for Multimodal Few-Shot Font Generation",
+    "venue": "CVPR 2026",
+    "pdf_url": "https://openaccess.thecvf.com/content/CVPR2026/papers/Cai_Beyond_Patches_Global-aware_Autoregressive_Model_for_Multimodal_Few-Shot_Font_Generation_CVPR_2026_paper.pdf",
+    "code_url": "",
+    "status": "downloaded",
+    "sha256": "6bd20ae0faeef3b967790888f419f0c4c7754154190f4680aed023a7033cf917",
+    "file": "papers/GAR-Font.pdf",
+    "pdfinfo": "Title:           Beyond Patches: Global-aware Autoregressive Model for Multimodal Few-Shot Font Generation\nSubject:         IEEE Conference on Computer Vision and Pattern Recognition\nAuthor:          Haonan Cai; Yuxuan Luo; Zhouhui Lian\nProducer:        pikepdf 10.5.1\nCustom Metadata: no\nMetadata Stream: yes\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           12\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       2558583 bytes\nOptimized:       no\nPDF version:     1.5\n",
+    "project_url": "https://xtryer-s.github.io/projects_pages/GAR_Font"
+  },
+  {
+    "id": "SLD-Font",
+    "title": "Disentangle to Create: Structure-Level Disentangled Diffusion Model for Few-Shot Chinese Font Generation",
+    "venue": "2026 preprint",
+    "pdf_url": "https://arxiv.org/pdf/2602.18874",
+    "code_url": "",
+    "status": "downloaded",
+    "sha256": "0f1852b6d877045048ec0bc5d470136b39fe8d2a26e2dec44956104293fc9f79",
+    "file": "papers/SLD-Font.pdf",
+    "pdfinfo": "Title:           Structure-Level Disentangled Diffusion for Few-Shot Chinese Font Generation\nAuthor:          Jie Li; Suorong Yang; Jian Zhao; Furao Shen\nCreator:         arXiv GenPDF (tex2pdf:57610bf)\nProducer:        pikepdf 8.15.1\nCustom Metadata: yes\nMetadata Stream: yes\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           18\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       7597937 bytes\nOptimized:       no\nPDF version:     1.7\n"
+  },
+  {
+    "id": "DiffInk",
+    "title": "DiffInk: Glyph- and Style-Aware Latent Diffusion Transformer for Text to Online Handwriting Generation",
+    "venue": "ICLR 2026",
+    "pdf_url": "https://arxiv.org/pdf/2509.23624",
+    "code_url": "https://github.com/awei669/DiffInk",
+    "status": "downloaded",
+    "sha256": "1e5e9c752194b4ace225994a11bd86c702818c8a3e957d4f1a4e1a8e73c86d64",
+    "file": "papers/DiffInk.pdf",
+    "pdfinfo": "Title:           DiffInk: Glyph- and Style-Aware Latent Diffusion Transformer for Text to Online Handwriting Generation\nAuthor:          Wei Pan; Huiguo He; Hiuyi Cheng; Yilin Shi; Lianwen Jin\nCreator:         arXiv GenPDF (tex2pdf:57610bf)\nProducer:        pikepdf 8.15.1\nCustom Metadata: yes\nMetadata Stream: yes\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           26\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       23009571 bytes\nOptimized:       no\nPDF version:     1.7\n"
+  },
+  {
+    "id": "CONSTANT",
+    "title": "CONSTANT: Towards High-Quality One-Shot Handwriting Generation with Patch Contrastive Enhancement and Style-Aware Quantization",
+    "venue": "WACV 2026",
+    "pdf_url": "https://openaccess.thecvf.com/content/WACV2026/papers/Le_CONSTANT_Towards_High-Quality_One-Shot_Handwriting_Generation_with_Patch_Contrastive_Enhancement_WACV_2026_paper.pdf",
+    "code_url": "https://github.com/duylebkHCM/CONSTANT",
+    "status": "downloaded",
+    "sha256": "8d47af66027a11a7ed243e3c03aa9227204cdaf297a4fafe4f3d72499bca37e4",
+    "file": "papers/CONSTANT.pdf",
+    "pdfinfo": "Title:           CONSTANT: Towards High-Quality One-Shot Handwriting Generation with Patch Contrastive Enhancement and Style-Aware Quantization\nSubject:         IEEE Winter Conference on Applications of Computer Vision\nAuthor:          Anh-Duy Le; Van-Linh Pham; Thanh-Nam Vo; Xuan Toan Mai; Tuan-Anh Tran\nProducer:        pikepdf 10.3.0\nCustom Metadata: no\nMetadata Stream: yes\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           10\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       2236432 bytes\nOptimized:       no\nPDF version:     1.7\n"
+  },
+  {
+    "id": "Latent-Diffusion",
+    "title": "High-Resolution Image Synthesis with Latent Diffusion Models",
+    "venue": "CVPR 2022",
+    "pdf_url": "https://arxiv.org/pdf/2112.10752",
+    "code_url": "https://github.com/CompVis/latent-diffusion",
+    "status": "downloaded",
+    "sha256": "46ede043a8dc07ca1f0f445620523fe1ad8b2436bd83856a3835612a47e9f79e",
+    "file": "papers/Latent-Diffusion.pdf",
+    "pdfinfo": "Title:           \nSubject:         \nKeywords:        \nAuthor:          \nCreator:         LaTeX with hyperref\nProducer:        pdfTeX-1.40.21\nCreationDate:    Wed Apr 13 17:23:10 2022 PDT\nModDate:         Wed Apr 13 17:23:10 2022 PDT\nCustom Metadata: yes\nMetadata Stream: no\nTagged:          no\nUserProperties:  no\nSuspects:        no\nForm:            none\nJavaScript:      no\nPages:           45\nEncrypted:       no\nPage size:       612 x 792 pts (letter)\nPage rot:        0\nFile size:       40842586 bytes\nOptimized:       no\nPDF version:     1.5\n"
+  }
+]

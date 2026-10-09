@@ -1,0 +1,895 @@
+                      This CVPR paper is the Open Access version, provided by the Computer Vision Foundation.
+                                   Except for this watermark, it is identical to the accepted version;
+                             the final published version of the proceedings is available on IEEE Xplore.
+
+
+
+
+                      Beyond Patches: Global-aware Autoregressive Model for
+                              Multimodal Few-Shot Font Generation
+
+                                 Haonan Cai1,2 * Yuxuan Luo1 * Zhouhui Lian1†
+                             1
+                         Wangxuan Institute of Computer Technology, Peking University
+                  2
+                    School of Electronics Engineering and Computer Science, Peking University
+
+
+                                 Abstract
+
+Manual font design is an intricate process that transforms
+a stylistic visual concept into a coherent glyph set. This
+challenge persists in automated Few-shot Font Generation                                       Visual Few-shot
+                                                                                               Font Generation
+(FFG), where models struggle to preserve both structural
+integrity and stylistic fidelity from limited references. While         “A font with uniform bold
+                                                                        strokes and sharp curvature,
+autoregressive (AR) models have demonstrated impressive                 conveying a formal tone.
+
+generative capabilities, their application to FFG is con-
+strained by conventional patch-level tokenization, which ne-            “A font exhibiting
+                                                                        smooth edges and
+glects global dependencies crucial for coherent font syn-               rounded forms.”
+                                                                                             Multimodal Few-shot
+thesis. Moreover, existing FFG methods remain within the                                      Font Generation
+image-to-image paradigm, relying solely on visual refer-
+ences and overlooking the role of language in conveying
+                                                                        Figure 1. GAR-Font results under visual and multimodal few-
+stylistic intent during font design. To address these limi-
+                                                                        shot settings. The generated poem reflects the key contributions
+tations, we propose GAR-Font, a novel AR framework for                  of our model: global-aware tokenization for style fidelity, mul-
+multimodal few-shot font generation. GAR-Font introduces                timodal style encoding for text-image control, reduced reference
+a global-aware tokenizer that effectively captures both local           requirements, and an autoregressive design that enables control-
+structures and global stylistic patterns, a multimodal style            lable high-quality font synthesis.
+encoder offering flexible style control through a lightweight
+language-style adapter without requiring intensive multi-
+modal pretraining, and a post-refinement pipeline that fur-                Few-shot Font Generation (FFG) seeks to automate this
+ther enhances structural fidelity and style coherence. Exten-           process by generating an entire font library from only a
+sive experiments show that GAR-Font outperforms existing                handful of reference examples. However, it presents several
+FFG methods, excelling in maintaining global style faith-               technical difficulties. First, it demands precise structural
+fulness and achieving higher-quality results with textual               fidelity, where strokes, radicals, and local geometry must
+stylistic guidance. Project Page: https://xtryer-                       be correct for every glyph. Second, it requires capturing a
+s.github.io/projects_pages/GAR_Font                                     holistic and faithful style representation, generalizing from
+                                                                        a handful of examples across diverse characters.
+                                                                           A core obstacle for FFG is the lack of an effective vi-
+1. Introduction                                                         sual global representation. GAN-based methods [29, 46]
+                                                                        often exhibit noticeable style discrepancies from the refer-
+High-quality fonts are central to visual communication, yet
+                                                                        ence fonts, and struggle with stroke-level accuracy. Diffu-
+their manual creation is costly: practitioners must translate
+                                                                        sion models [21, 33, 71] improve structural correctness and
+their design concepts into a full, consistent glyph set. This
+                                                                        local fidelity but do not guarantee a coherent global style.
+challenge is compounded for logographic systems like Chi-
+                                                                        Existing sequence approaches such as VQ-Font [72] and IF-
+nese and Japanese, which contain tens of thousands of char-
+                                                                        Font [13] rely on local patch or block tokenization, which
+acters and complex stroke geometries.
+                                                                        fragments global cues and leads to noticeable discrepancies
+  1 *: Equal contribution.                                              from the reference styles. Recent autoregressive (AR) im-
+  2 †: Corresponding author: lianzhouhui@pku.edu.cn                     age generation methods [25, 75] further reveal the superi-
+
+
+
+                                                                  517
+                                                                                                                                  channel
+ority of globally contextualized 1D tokens over 2D patched                                                                        concat.                                   CodeBook
+                                                                                                  Content                                                 C
+tokenization, highlighting a promising direction for model-                                                 Q
+
+
+                                                                                                                                                              Transformer
+                                                                                                  Encoder                                                                   1
+                                                                                                                                                                            2
+                                                                                                                                                                                        G-Tok
+
+
+                                                                                                                                             Aggregator
+ing global stylistic patterns in font synthesis.
+                                                                                                                 Cross Attn.   Cross Attn.
+                                                                                                                                                                            3
+                                                                                                                                                                                       Decoder
+    Meanwhile, existing FFG methods remain single-modal,                 “A font that exhibits     Style    K,
+                                                                                                                                                                            4
+                                                                                                                                                                                ...
+                                                                                                  Encoder
+                                                                          bold stroke weight,
+
+
+using only visual modality for style control. In contrast, lin-          tight spacing, smooth
+                                                                           edges, calligraphic              V                                                               Q
+                                                                        texture, and an overall
+                                                                             formal mood.”
+
+
+guistic descriptions convey global conceptual design intents
+beyond visual appearance, providing complementary repre-                Figure 2. The overall architecture of GAR-Font. It comprises a
+sentations that help overcome the limitations of vision-only            global-aware tokenizer (G-Tok), and an AR generator, equipped
+models when style must be inferred from a few examples.                 with a multimodal style encoder.
+    These insights motivate GAR-Font, an expressive and
+controllable FFG framework that integrates visual and lin-
+                                                                        24, 64]. To improve global coherence, recent works
+guistic information. Leveraging the AR modeling capacity,
+                                                                        explore complementary strategies: global-context model-
+GAR-Font introduces three major technical contributions:
+                                                                        ing [80] introduces holistic queries for structural reason-
+• We propose a global-aware tokenizer (G-Tok) that fuses                ing; frequency-domain methods [25, 26] encode coarse-
+   local features with global perception, capturing both fine-          to-fine spectral context; 1D tokenizers [2, 65, 75] en-
+   grained stroke details and font-level style patterns.                hance efficiency but lose adaptability; semantic tokeniza-
+• We design an AR generator with multimodal style en-                   tion [35, 77] leverages language priors for meaningful vi-
+   coder, first pretrained on visual inputs, and then aug-              sual codes. Structured visual like glyphs, however, demands
+   mented with a lightweight language-style adapter.                    tokenizers that unify local stroke detail with global aes-
+• We introduce a post-refinement pipeline that improves                 thetics. Our GAR-Font addresses this challenge through a
+   structural fidelity and stylistic coherence, producing high-         global-aware tokenizer that integrates CNN-based locality
+   quality glyphs from limited references.                              with Transformer-based global reasoning, effectively unify-
+    To validate the effectiveness of GAR-Font, we conduct               ing fine-grained stroke detail and overall stylistic coherence.
+extensive experiments across multiple settings. In the stan-
+dard vision-only scenario, it surpasses other competitive               2.2. Few-shot Font Generation
+FFG methods, demonstrating superior structural and stylis-              Few-shot Font Generation (FFG) can be broadly divided
+tic fidelity. In the multimodal setting, the augmented mul-             into vector-based and image-based approaches. Vector FFG
+timodal style encoder further improves generation qual-                 methods have progressed in sequential modeling and effi-
+ity. Using 4 reference images plus one textual description,             cient representations [41, 55, 56, 62, 63, 68]. Yet com-
+GAR-Font matches the quantitative performance of 8 im-                  plex ideographic generation and unseen glyph generaliza-
+ages while providing flexible control. Ablation studies fur-            tion remain challenging [36, 37]. Image-based methods, in
+ther confirm that G-Tok produces stable and coherent rep-               contrast, learn 2D pixel priors for robust adaptation, evolv-
+resentations that preserve holistic structure and reference             ing from early image-to-image translation [4, 9, 11, 66] to
+style fidelity—key factors for high-quality font synthesis.             more recent VQ and diffusion formulations [33, 34, 71, 72].
+GAR-Font moves beyond patch-level modeling by learning                  These models typically employ content–style disentangle-
+global-aware representations and enabling text-driven mul-              ment to separately capture structure and style [8, 19, 21,
+timodal FFG, establishing a new AR-based solution for au-               22, 39, 45, 47, 70, 78, 79], enhanced by mechanisms like
+tomatic and controllable font generation.                               contrastive learning for global coherence [27] and cross-
+                                                                        attention for local transfer [54].
+2. Related Work                                                            The challenge is most acute for glyph-rich, ideographic
+                                                                        languages such as Chinese and Korean, where thousands
+2.1. Autoregressive Image Generation                                    of characters demand fine structure and faithful global
+Autoregressive (AR) models have shown powerful gener-                   style [18, 27, 28, 33]. In this regime, image-based AR
+ation ability across modalities [1, 32, 38, 42], and their              models that operate FFG on globally contextualized vi-
+extension to visual generation [14, 48, 52, 53, 60, 61, 74]             sual tokens show particular promise: by modeling spatial
+has demonstrated promising potential. Typically, they fol-              dependencies directly in the 2D domain, they better capture
+low a two-stage paradigm: a tokenizer encodes images                    the intricate geometry and visual regularities of glyphs.
+into discrete representations (e.g., VQ-VAEs [49, 58], RQ-
+VAE [31], VQ-GAN [17, 73]), and a transformer de-                       2.3. Multimodal Alignment for Style Control
+coder [10, 25, 44, 57, 76] that sequentially predicts these             Multimodal alignment for style control unifies visual and
+tokens for image reconstruction.                                        textual modalities for coherent, fine-grained style manipu-
+   Most AR models use 2D patch-wise tokenization, cap-                  lation. Foundational models [6, 14, 15, 20, 61, 67] achieve
+turing local details but lacking holistic awareness [5, 12,             this through costly multimodal pretraining. For fonts, how-
+
+
+
+                                                                  518
+                                                 Position                                     Position
+                                                 Embedding                                    Embedding
+                                                                                                   .
+                                                                                                                                       ViT Encoder       Causal ViT Decoder
+                                                                       CodeBook                   .
+
+                                                                   1                                                                    LayerNorm              LayerNorm
+
+                                 Flatten
+                                                                   2
+                                                                                               Causal                                   Multi-Head             Multi-Head
+                                                   ViT             3
+                           CNN                                                                                  CNN
+                                                                                                                                       Self Attention        Causal Attention
+                                           ...               ...                  ...           ViT       ...
+                                                 Encoder
+                                                                   4
+                                                                                              Decoder
+                                                                         ...
+                                                                   5
+                                                                                                                                        LayerNorm              LayerNorm
+
+                                                                   Q                                                                       MLP                    MLP
+
+                                 G-Tok Encoder                                            G-Tok Decoder                                                 X6                      X6
+                                                 (a) Global-aware Tokenizer (G-Tok).                                                  (b) ViT Architecture inside G-Tok.
+
+
+Figure 3. (a) Overview of the G-Tok architecture, which adopts a hybrid CNN–ViT design. (b) Details of the global ViT encoder and causal
+ViT decoder. With self- and causal-attention, G-Tok captures global dependencies, enabling coherent and high-quality font synthesis.
+
+
+ever, only textual inputs describing style are incorporated,                                  Hybrid encoding. Given a glyph image I ∈ RH×W ×3 ,
+and the independent encoding of content and style in FFG                                      a CNN encoder ECNN extracts local stroke features, which
+frameworks [46, 54, 72] naturally forms a structured vi-                                      are flattened and aggregated through a ViT encoder EViT :
+sual style space that serves as a strong prior for multi-
+                                                                                                      T = EViT Proj(ECNN (I)) + P2D ∈ RN ×d ,
+                                                                                                                                       
+                                                                                                                                                     (1)
+modal integration. Recent works pursue efficient align-
+ment via parameter-efficient modules [7, 23, 30, 51] or                                       where P2D refers to the 2D sinusoidal position embed-
+resampler-based strategies aligning vision and language                                       dings [16], N and d denote token count and embedding
+spaces [1, 40, 43, 69]. Motivated by these works, GAR-                                        dimension. The CNN backbone preserves spatial locality,
+Font extends the style encoder in FFG models to a multi-                                      capturing fine stroke geometry, while the ViT aggregates to-
+modal style encoder that consists of a visual style encoder                                   kens globally for style fidelity. This hybrid design captures
+and a lightweight pluggable language-style adapter that                                       both structure fidelity and long-range style dependencies.
+aligns textual descriptions with visual style embeddings, en-
+abling fine-grained, flexible style control without the need                                  Vector Quantization. Following standard VQ-VAE [58]
+for large-scale multimodal pretraining.                                                       and VQ-GAN [17], we discretize latent tokens by mapping
+                                                                                              them to the nearest entries in a learnable table. We apply the
+3. Method                                                                                     commitment and embedding regularization with an entropy
+                                                                                              term to stabilize training and preserve diversity.
+The architecture of GAR-Font is illustrated in Figure 2. Our
+framework comprises three core components:                                                    Causal decoding and optimization. A causal ViT–CNN
+A global-aware tokenizer (G-Tok) discretizes glyphs into                                      decoder reconstructs glyph Î from quantized tokens, model-
+tokens, capturing intricate structure and global visual style.                                ing sequential dependencies while convolutional layers re-
+An AR generator with multimodal style encoder first                                           fine local details. Figure 3(b) illustrates this structure.
+learns from visual inputs to establish a stable style space,                                     The tokenizer is optimized end-to-end with weighted re-
+and then employs a lightweight language-style adapter for                                     construction, perceptual, and vector quantization losses:
+multimodal style control.
+A post-refinement enhances structural fidelity and style co-                                                          Ltok = λrec Lrec + λper Lper + λvq Lvq ,                       (2)
+herence for high-quality few-shot font generation.                                            where Lrec = ∥I − Î∥1 denotes the L1 reconstruction loss,
+   Given a content glyph, a few style references, and op-                                     Lper = ∥Φ(I) − Φ(Î)∥22 represents the perceptual loss, and
+tional text, GAR-Font encodes and aggregates content and                                      Lvq is the standard vector quantization loss.
+style, autoregressively generates codebook representations
+and decodes them softly into high-quality glyphs, which are                                   3.2. AR Generator with Multimodal Style Encoder
+subsequently improved by a post-refining stage. The details                                   Using G-Tok’s global representations, the AR generator
+of each module adopted in the proposed GAR-Font will be                                       performs conditional sequential prediction. To leverage
+presented in the following subsections.                                                       prior FFG insights (Content-style Aggregator) while avoid-
+                                                                                              ing the cost of joint image–text training, GAR-Font adopts
+3.1. Global-aware Tokenizer
+                                                                                              a decoupled learning paradigm. The generator, aggrega-
+The Global-aware Tokenizer (G-Tok), shown in Figure 3,                                        tor, and style encoder are first trained on visual inputs to
+encodes glyphs into tokens using a hybrid CNN–ViT en-                                         learn a stable representation. Based on this foundation,
+coder, a vector quantizer, and a causal hybrid decoder. By                                    the visual style encoder is extended into a multimodal one
+fusing local convolutional features with Transformer-based                                    through a lightweight, plug-in language adapter that aligns
+global context, it captures fine-grained structure and overall                                textual cues with learned visual styles, enabling flexible
+style, enabling coherent, high-quality font synthesis.                                        text-guided generation without disturbing the visual prior.
+
+
+
+                                                                                        519
+3.2.1. Pretraining on Visual Modality                                                                                                                                                                                                      G-Tok
+                                                                                            Content                                   GAR-Font
+                                                                                                                                                                                                       ..
+                                                                                                                                                                                                                 CodeBook
+Visualized in Figure 4(a), to build a stable style–content                                                                                                                                                                                Decoder
+                                                                                            Encoder                                                                                                             1
+
+
+
+
+                                                                                                                                                                           Transformer
+                                                                                                                                                                                                                2
+
+
+
+                                                                                                                                                              Aggregator
+representation, the AR generator is first trained on visual                                                                                                                                                                                         ℒpixel
+                                                                                                                                 Cross Attn.    Cross Attn.
+                                                                                                                                                                                                      ℒ CE      3
+
+conditions, following the successful practices of prior FFG                                Visual
+                                                                                                                                                                                                                4
+                                                                                                                                                                                                                      ...
+                                                                                                                                                                                                       ..                                  G-Tok
+                                                                                           Style
+methods. This ensures robust modeling of both content                                     Encoder
+                                                                                                                                                                                                                Q
+                                                                                                                                                                                                                                          Encoder
+structure and stylistic variations across glyphs, providing a
+                                                                                                                      (a) Pretraining GAR-Font(I8) with visual modality.
+solid foundation for subsequent multimodal adaptation.
+                                                                          “A font that
+
+                                                                                                                                                                                                                                         Content
+                                                                          exhibits bold
+                                                                                                                                                                                                                                                        ..
+
+                                                                                                     Projection
+                                                                        stroke weight,
+                                                                                                                  Q
+                                                                                           Flan-T5
+                                                                                                                                                                                                                                         Encoder
+                                                                         tight spacing,
+                                                                         smooth edges,                                                                                                         Q                            Q
+Encoders and Content–style Aggregator. As shown in
+                                                                                                                                                      Language-style
+                                                                           calligraphic
+                                                                        texture, and an
+                                                                                                                                                                                                             ℒadapt
+                                                                                                                        Cross Attn.     Cross Attn.
+                                                                         overall formal
+Figure 4(a), we adopt both CNN architectures on the con-                     mood.”
+
+
+
+
+                                                                                                                                                                                         Aggregator                         Aggregator
+                                                                                                                                                         Adapter
+                                                                                                                                                                                                                                          Visual
+tent encoder and the visual style encoder. The Content-                                    Visual                 K,                                                       C                             ..           ..
+                                                                                                                                                                                                                                          Style
+                                                                                           Style                                                                                                                                         Encoder
+style Aggregator follows the previous design [46, 54].                                    Encoder                 V
+
+Given a content glyph and Ns style references, the en-
+                                                                                                                                 (b) Efficient Visual-language Adaptation.
+coders respectively extract content features Fc and style
+features{Fvisj }N s
+                j=1 . These features are then fused where             Figure 4. GAR-Font adopts a two-stage training: (a) Visual Pre-
+content queries attend to fine-grained style cues:                    training builds a stable content–style space via token and pixel
+                                                                      losses; (b) Vision–language Adaptation aligns text embeddings
+          T̃vis = Aggregator Fc , {Fvisj }N
+                                                
+                                             j=1 .
+                                              s
+                                                      (3)             with style features with a lightweight adapter for text-guided gen-
+                                                                      eration while preserving visual priors.
+The aggregated visual representation T̃vis is concatenated
+with Fc to form the conditioning input T.
+                                                                      Vision-language Adapter. The adapter bridges textual
+                                                                      descriptions and visual style features through iterative
+Autoregressive modeling and soft decoding. Condi-                     cross-attention. Specifically, a subset of visual style fea-
+tioned on T, the Transformer generator autoregressively               tures {Fvisj }kj=1 is first extracted from k < Ns reference
+predicts the next token, producing logits L over the G-               glyphs by the visual style encoder, while a textual font de-
+Tok codebook C. Instead of discrete hard decoding, we                 scription embedding is derived from a pretrained Flan-T5
+apply a soft projection that maps L onto the codebook                 encoder. The text embedding is projected into the visual
+Z̃ = Softmax(L) · C. This continuous mapping not only                 feature space and iteratively refined by attending to style
+preserves gradient flow during training, enabling pixel-level         features. The aligned textual–visual token is then spatially
+supervision, but can also improves stroke continuity and              expanded into Ft and concatenated with the visual features:
+glyph fidelity by leveraging the full expressive capacity of
+the codebook, yielding smoother and more accurate glyphs                                                          F̃mm = [Fvis1 , . . . , Fvisk , Ft ].                                                                                                      (5)
+compared with discrete hard decoding.
+                                                                      Training objectives. The multimodal style encoder may
+Training objectives. During this visual-pretraining stage,            produce features F̃mm of different token lengths than the
+the aggregator, generator, and style encoder are jointly op-          visual-only encoder due to varying numbers of visual ref-
+timized with a combined token and pixel-level loss:                   erences. Thus, we supervise training on their aggregated
+                                                                      objectives. Specifically, T̃mm and T̃vis are obtained by ag-
+               LAR = λCE LCE + λpixel Lpixel ,           (4)          gregating k visual plus one textual reference, and all Ns
+                                                                      visual references, respectively. The adapter is trained by
+where LCE is the cross-entropy loss over the target token             minimizing the ℓ2 distance between these representations:
+indices s, and Lpixel measures the L1 reconstruction error
+                                                                                                                           Ladapt = ∥T̃mm − T̃vis ∥22 .                                                                                                      (6)
+between the generated glyph Îf and ground truth If .
+                                                                         This objective encourages the multimodal encoder to in-
+3.2.2. Multimodal Style Encoder Adaptation                            ternalize stylistic intent consistent with the full-visual set-
+Visual pretraining forms a stable style–content space but             ting, facilitating effective text–style substitution and reduc-
+lacks high-level conceptual control. To address this, we in-          ing reliance on visual inputs.
+troduce a lightweight, plug-in language adapter that aligns
+textual design cues with visual style representations, as
+                                                                      3.3. Post-refinement
+shown in Figure 4(b). Through this adapter, the style en-             GAR-Font adopts a two-stage post-refinement to improve
+coder is extended into a multimodal form, enabling flexible           few-shot style generalization and structural accuracy: novel
+text-guided modulation without disrupting the visual prior.           font adaptation (NFA) and structural enhancement (SE).
+
+
+
+                                                                520
+Novel font adaptation (NFA) for few-shot generalization.                 training, and the remaining 512 are held out as unseen char-
+The pretrained generator learns general font patterns but ex-            acters. During evaluation, we consider two settings:
+hibits minor inconsistencies on unseen styles. NFA mit-                  (1) Unseen Fonts Seen Characters (UFSC), where 512 seen
+igates this by performing a lightweight adaptation using                 characters are rendered with the 40 unseen fonts; and
+a few reference glyphs, updating the LoRA layers of the                  (2) Unseen Fonts Unseen Characters (UFUC), where 512
+Transformer generator with a mixed token–pixel loss:                     unseen characters are rendered with the same unseen fonts.
+                                                                             We use RMSE↓, SSIM↑, LPIPS↓, and FID↓ to mea-
+               LNFA = λCE LCE + λpixel Lpixel ,             (7)          sure pixel- and perception-level similarity between gener-
+                                                                         ated and ground-truth glyphs. Following [33, 46], we train a
+where LCE is the token cross-entropy and Lpixel = ∥I − Î∥1              content classifier over 6,763 characters (99.71% accuracy)
+encourages pixel-level accuracy. This yields stable few-shot             and a style classifier over 3,040 fonts (92.72% accuracy)
+adaptation and better preservation of unseen styles.                     to compute content accuracy (Acc(C)↑) and style accuracy
+                                                                         (Acc(S)↑). All glyphs are resized to 64 × 64 for evaluation.
+Structural enhancement (SE) for precise glyph recon-
+struction. While NFA enhances style fidelity, minor                      4.2. Implementation Details
+structural distortions may remain. To enhance structural                 The G-Tok tokenizer discretizes each glyph into 64 to-
+clarity and readability, SE further refines glyphs using a               kens using a 2,048-entry, dimension-8 codebook, trained
+group-relative optimization based on GRPO [50]. The gen-                 for 200k iterations (batch = 16, lr = 1×10−4 ). The vision-
+erator is treated as a policy πθ that outputs token sequences            only AR generator uses the AdamW optimizer (β1 = 0.9,
+s; each decoded glyph receives a composite reward:                       β2 = 0.95), conditioned on one Kaiti content. GAR-
+                                                                         Font(I8 ) is trained with Ns = 8 style glyphs for 600k/1M
+                  r = λocr rocr + λstyle rstyle ,           (8)
+                                                                         iterations on the small/large sets (batch = 32, lr = 1×10−4 ).
+   where rocr is obtained from a pretrained OCR model as                     For multimodal style encoder adaptation, the Lan-
+                                                                         guage–style Adapter is trained for 40k iterations (batch size
+                                                                         = 128, lr = 1×10−4 ) with the visual-only features (Ns = 8)
+                        (
+                          pocr , if ŷ = y,
+                 rocr =                               (9)                as ground truth. By adjusting multimodal encoder’s visual
+                          0,     otherwise.                              style reference numbers k = 2/4, we build multimodal vari-
+   Here pocr is the recognition confidence, and rstyle mea-              ants: GAR-Font(M2 ) and GAR-Font(M4 ).
+sures the style consistency via a pretrained discriminator.                  In post-refinement, NFA is conducted on 8 target font
+   Rewards are normalized within each sampled group to                   glyphs (denoted as NFA-8) for 10 epochs (lr = 2×10−5 ). SE
+                               (k)
+                                   −µ(r)                                 is based on GRPO, where each group generates 4 samples
+compute advantages A(k) = r σ(r)         . SE updates only the
+                                                                         and each character is trained with 8 glyphs from different
+LoRA layers by maximizing advantage-weighted likelihood
+                                                                         fonts (epochs = 10, batch size = 32, learning rate = 5e−6).
+with KL regularization to a frozen reference policy:
+                                                                         4.3. Comparison on Few-shot Font Generation
+                                                                         We conduct an experiment for vision-only FFG, where
+                                    
+  LSE = −Es∼πθ A(s) log πθ (s) + β KL(πθ ∥πref ),          (10)
+                                                                         all models generate glyphs from only reference images.
+where A(s) denotes the group-normalized advantage and                    GAR-Font(I8 ) is compared with seven open-source meth-
+πref is the frozen reference policy used for stability.                  ods: GAN/VAE-based LF-Font [46], VQ-Font [72], DG-
+                                                                         Font [70], CF-Font [59]; diffusion-based Diff-Font [21] and
+4. Experiments                                                           Font-Diffuser [71]; and the AR-based IF-Font [13]. All
+                                                                         methods are trained and evaluated on the S and L datasets
+4.1. Datasets and Evaluation Metrics                                     using their official resolutions and hyperparameters. GAR-
+We evaluate GAR-Font and prior FFG methods on two                        Font(I8 ) is evaluated both before and after post-refinement.
+datasets: a small-scale set containing 440 font styles (S)                  Table 1 shows that GAR-Font(I8 ) consistently outper-
+and a large-scale set with 3,040 styles (L). The small-scale             forms existing vision-only FFG approaches. Even at
+dataset is a strict subset of the large-scale one, allowing fair         the pretrained stage, it achieves competitive RMSE↓ and
+cross-scale comparison. In each dataset, we randomly se-                 SSIM↑ on both UFSC/UFUC, and obtains the best FID↓
+lect 40 as unseen test fonts, while the remaining 400 (for S)            scores on the large (L) and small (S) datasets. With NFA-
+or 3,000 (for L) are used for training.                                  8 and SE, GAR-Font further improves in both style fidelity
+   Both datasets are constructed based on the official                   and structural accuracy, achieving RMSE↓ (0.2503/0.2540)
+GB2312 character set, including 6,763 Chinese characters.                and SSIM↑ (0.6411/0.6356) on UFSC/UFUC, surpassing
+Among them, 6,251 characters are randomly chosen for                     existing methods by a large margin.
+
+
+
+                                                                   521
+Table 1. Quantitative results on vision-only FFG. / denote the best results on the Large / Small datasets, respectively. GAR-Font(I8 )
+shows competitive metrics at pretraining and achieves top reconstruction and perceptual performance on the Large UFSC split after NFA-
+8+SE, demonstrating improved structural fidelity and perceptual quality.
+
+       Method             Train         Unseen Fonts Seen Characters (UFSC)             Unseen Fonts Unseen Characters (UFUC)
+                           Set    RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑ RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑
+       LF-Font              S     0.3984 0.3276 0.2641 32.7464 0.4624 0.0148 0.3983 0.3299 0.2620 32.7028 0.4889 0.0160
+                            L     0.3988 0.3318 0.2450 21.1028 0.8989 0.0024 0.3986 0.3333 0.2451 21.8141 0.9082 0.0028
+       VQ-Font              S     0.2727 0.5642 0.1830 35.2472 0.8763 0.0016 0.2744 0.5616 0.1822 36.7914 0.8882 0.0016
+                            L     0.2734 0.5633 0.1749 19.3103 0.8549 0.0014 0.2741 0.5627 0.1746 19.971 0.8434 0.0015
+       DG-Font              S     0.3208 0.4991 0.1281 13.8392 0.9706 0.0764 0.3173 0.5074 0.1270 14.8249 0.9706 0.0797
+                            L     0.3117 0.5193 0.1235 17.1646 0.9172 0.1089 0.3074 0.5289 0.1214 17.2638 0.9174 0.1120
+       CF-Font              S     0.3110 0.526 0.1301 18.6961 0.8542 0.0725 0.3077 0.5333 0.1282 19.309 0.8687 0.0747
+                            L     0.2993 0.5418 0.1155 13.354 0.8931 0.1549 0.2967 0.5474 0.1144 14.0878 0.8947 0.1570
+       IF-Font              S     0.4076 0.3220 0.1713 14.2393 0.9804 0.0246 0.4063 0.3257 0.1724 14.8211 0.9750 0.0211
+                            L     0.3969 0.3374 0.1480 11.6470 0.9387 0.1148 0.3949 0.3433 0.1476 11.8445 0.9354 0.1153
+       Diff-Font            S     0.3688 0.3903 0.1851 10.5722 0.4419 0.0515    -      -      -      -       -      -
+                            L     0.3651 0.3949 0.1791 9.7051 0.4029 0.1208     -      -      -      -       -      -
+       Font-Diffuser        S     0.3010 0.4994 0.1728 26.2647 0.9994 0.0212 0.2999 0.5023 0.1720 26.9122 0.9999 0.0226
+                            L     0.2645 0.5813 0.1419 21.4246 0.9979 0.0527 0.2631 0.5849 0.1407 21.9637 0.9980 0.0578
+       GAR-Font(I8 )        S     0.3080 0.5052 0.1313 7.9484 0.9408 0.0802 0.3142 0.4932 0.1421 8.4841 0.8993 0.0796
+                            L     0.2772 0.5799 0.1112 7.7155 0.9146 0.1928 0.2784 0.5787 0.1121 8.0349 0.8912 0.1892
+       GAR-Font             S     0.2979 0.5418 0.1177 6.6909 0.9195 0.1128 0.3002 0.5354 0.1195 6.4693 0.9191 0.1112
+       (I8 , +NFA-8)        L     0.2600 0.6158 0.0979 6.5634 0.9210 0.3313 0.2603 0.6160 0.0983 6.5842 0.8921 0.3518
+       GAR-Font             S     0.2909 0.5619 0.1111 8.4951 0.9817 0.1101 0.2935 0.5553 0.1129 8.3504 0.9804 0.1025
+       (I8 , +NFA-8+SE)     L     0.2503 0.6411 0.0885 8.9851 0.9795 0.3518 0.2540 0.6356 0.0903 8.6602 0.9670 0.3735
+
+
+       Content
+
+       LF-Font
+
+       VQ-Font
+
+       DG-Font
+
+       CF-Font
+
+       IF-Font
+
+       Diff-Font
+
+       Font-Diffuser
+
+       GAR-Font
+       (𝐼8 , +NFA-8+SE)
+
+       Target
+
+
+
+Figure 5. Qualitative results on vision-only FFG (UFSC, Large dataset).     /    indicate structural errors and style mismatches. GAR-
+Font(I8 , +NFA-8+SE) produces the most faithful glyphs with superior structure and style alignment.
+
+
+   Figure 5 presents comparisons under the UFSC setting.                   Font(M2 ) and GAR-Font(M4 ), which pair 2 or 4 visual ref-
+GAR-Font(I8 , +NFA-8+SE) generates the most precise and                    erences with one textual style description. For experimental
+coherent glyphs. By contrast, LF-Font, VQ-Font, DG-Font,                   evaluation, due to the lack of such corpora, Qwen2.5-VL [3]
+CF-Font, and Diff-Font often exhibit stroke distortion or                  generates descriptions as a proxy of human-authored design
+structural collapse on complex styles. IF-Font frequently                  intent; details are provided in the supplementary material.
+produces incomplete glyphs with overly thick strokes. Font-                    As shown in Table 2, both multimodal models outper-
+Diffuser maintains reasonable structure and style but often                form their vision-only counterparts with the same num-
+shows slight style shifts in the results.                                  ber of visual references across all major metrics. GAR-
+                                                                           Font(M4 ) even surpasses the 8-reference visual model,
+4.4. Efficient Vision-Language Adaptation                                  achieving lower RMSE↓/LPIPS↓ and higher SSIM↑ on the
+We further evaluate multimodal FFG to assess whether                       UFSC, along with a better FID↓ (7.4915 vs. 7.7155). Sim-
+textual style descriptions can improve over vision-only ref-               ilar gains appear on UFUC, confirming that language pro-
+erences. Using GAR-Font(I8 ) on the large (L) dataset,                     vides complementary style cues and reduces reliance on nu-
+we vary the number of visual references nref ∈ 2, 4, 8 as                  merous visual references. A mild decrease in ACC(S) is ob-
+baselines. We then introduce multimodal variants GAR-                      served, likely because textual guidance yields smoother and
+
+
+
+                                                                     522
+Table 2. Quantitative results on multimodal FFG. GAR-Font(M2 ) and GAR-Font(M4 ) integrate textual style guidance with 2 or 4 visual
+references, outperforming vision-only baselines across all major metrics. Results demonstrate that language complements visual references,
+enhancing fine-grained style representation while reducing reliance on handcrafted visuals.
+
+                Method                        Unseen Fonts Seen Characters (UFSC)                                                 Unseen Fonts Unseen Characters (UFUC)
+                              RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑ RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑
+                nref = 2      0.2816 0.5695 0.1158 7.3553 0.9184 0.1535 0.2825 0.5694 0.1162 7.5500 0.8930 0.1619
+                nref = 4      0.2807 0.5735 0.1138 7.3781 0.9206 0.1741 0.2813 0.5735 0.1146 7.4880 0.8958 0.1818
+                nref = 8      0.2772 0.5799 0.1112 7.7155 0.9146 0.1928 0.2784 0.5787 0.1121 8.0349 0.8912 0.1892
+                GAR-Font(M2 ) 0.2811 0.5724 0.1136 7.3145 0.9296 0.1203 0.2817 0.5731 0.1143 7.5306 0.9068 0.1289
+                GAR-Font(M4 ) 0.2764 0.5825 0.1098 7.4915 0.9260 0.1688 0.2776 0.5816 0.1107 7.6607 0.9039 0.1744
+
+
+          Content
+
+           𝑛𝑛𝑟𝑟𝑟𝑟𝑟𝑟 = 2
+
+           𝑛𝑛𝑟𝑟𝑟𝑟𝑟𝑟 = 4
+
+           𝑛𝑛𝑟𝑟𝑟𝑟𝑟𝑟 = 8
+
+
+           Textual style    “A font that exhibits sharp strokes     “A font that features smooth     “A font that combines graceful brush        “A font that blends dynamic       “A font that presents bold, square
+           description       and angular rhythm, conveying        curves and gentle flow, evoking   rhythm with open spacing, expressing      brushwork with balanced structure,      strokes and solid geometry,
+                                  energy and tension.”                warmth and elegance.”               a calm and refined charm.”           showing lively yet stable form.”     reflecting order and strength.”
+
+           GAR-Font(𝑀𝑀2 )
+
+           GAR-Font(𝑀𝑀4 )
+
+           Target
+
+
+
+
+Figure 6. Qualitative results on multimodal FFG(UFSC, Large dataset).      denotes local slight structural mistakes and     marks samples
+with stylistic regression. With textual style guidance, GAR-Font(M2 ) and GAR-Font(M4 ) yield more structurally accurate and stylistically
+coherent generations, demonstrating enhanced stable fine-grained style control compared to vision-only baselines (first three rows).
+
+
+more diverse styles beyond the classifier’s limit.                                                             Table 3. Ablation of G-Tok’s hybrid CNN-ViT architecture on
+   Qualitative examples in Figure 6 show that GAR-                                                             UFUC(Small dataset). Bold and underline indicate the best and
+                                                                                                               second-best results. Progressive integration of attention improves
+Font(M2 ) and GAR-Font(M4 ) preserve styles more reliably
+                                                                                                               both discriminative representation and reconstruction fidelity.
+than vision-only models, particularly when nref = 2, where
+the visual baseline noticeably drifts toward generic shapes.                                                        Method                    Linear Probing                       Reconstruction Robustness
+This highlights the effectiveness of language in reinforcing                                                                                Acc(S)↑       Acc(C)↑         RMSE↓           SSIM↑         LPIPS↓           FID↓
+style fidelity under low-reference conditions.                                                                      CNN                     0.5515        0.3879          0.1167          0.8535        0.0423          28.4279
+                                                                                                                    ViT-6                   0.6907        0.5334          0.1636          0.7333        0.0933          98.4270
+                                                                                                                    CNN-ViT-2               0.5229        0.3772          0.1114          0.8552        0.0420          30.0034
+4.5. Ablation Studies                                                                                               CNN-ViT-4               0.5585        0.3667          0.1114          0.8563        0.0430          24.7323
+                                                                                                                    CNN-ViT-6               0.6277        0.4897          0.1088          0.8594        0.0412          22.1577
+4.5.1. On G-Tok’s Hybrid Architecture
+To validate G-Tok’s hybrid CNN-ViT design, we start from
+a CNN-based tokenizer [52] and progressively insert ViT                                                        Table 4. Ablation of G-Tok’s architecture on UFUC(Small
+blocks at different depths to introduce global awareness.                                                      dataset). Incorporating self-attention (CNN+Non-Causal ViT) im-
+   We conduct two complementary analyses on UFUC test:                                                         proves global modeling while causal attention further strengthens
+1. Linear Probing evaluates the discriminative quality of                                                      sequential modeling, yielding the best overall performance.
+   frozen G-Tok representations for style and content pre-
+                                                                                                                   Method             RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑
+   diction using a single-layer linear classifier. Features                                                        CNN                0.3447 0.4350 0.1728 10.5239 0.6722 0.0221
+   are extracted and flattened from the frozen tokenizer en-                                                       CNN+Non-Causal ViT 0.3271 0.4745 0.1562 8.7504 0.8019 0.0436
+                                                                                                                   CNN+Causal ViT     0.3142 0.4932 0.1421 8.4841 0.8993 0.0796
+   coder, and high classification accuracy indicates that the
+   encoder effectively captures and discriminates structural
+   and stylistic information.
+2. Reconstruction Robustness recovers glyphs corrupted                                                         but suffers in reconstruction, while the CNN baseline en-
+   by localized Gaussian noise (σ = 0.2, affecting 20% of                                                      sures stable recreation with weaker probing results. The
+   the glyph area). High performance indicates that the tok-                                                   hybrid G-Tok progressively integrates global attention, with
+   enizer effectively preserves global structure and stylistic                                                 the CNN-ViT-6 variant achieving the best, improving both
+   cues despite local perturbations.                                                                           classification accuracy and reconstruction fidelity across all
+Table 3 shows that the pure ViT excels in linear probing                                                       metrics. Visualizations are in the supplementary material.
+
+
+
+                                                                                                      523
+Table 5. Ablation of decoding strategy and pixel-level supervision on UFSC and UFUC(Small dataset). Soft decoding outperforms hard
+decoding across all metrics, and pixel supervision further enhances reconstruction fidelity and recognition accuracy.
+
+            Training Loss Decoding        Unseen Fonts Seen Characters (UFSC)               Unseen Fonts Unseen Characters (UFUC)
+                           Strategy RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑ RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑
+            w/o pixel loss   hard   0.3235 0.4679 0.1517 10.3181 0.8647 0.0377 0.3322 0.4510 0.1602 11.2142 0.7465 0.0396
+                             soft   0.3231 0.4745 0.1502 9.6696 0.9171 0.0426 0.3313 0.4583 0.1589 10.3813 0.8104 0.0430
+            w/ pixel loss    hard   0.3083 0.4991 0.1329 8.3024 0.9032 0.0771 0.3157 0.4862 0.1448 8.9043 0.8404 0.0680
+                             soft   0.3080 0.5052 0.1313 7.9484 0.9408 0.0802 0.3142 0.4932 0.1421 8.4841 0.8993 0.0796
+
+
+Table 6. Quantitative comparison of joint training (GAR-Font(V Lk )) versus the decoupled adapter scheme (GAR-Font(Mk )) on unseen
+fonts. The decoupled Language-style Adapter surpasses joint-trained multimodal encoders, validating more effective vision–language
+alignment and improved reconstruction and perceptual metrics.
+
+            Method                   Unseen Fonts Seen Characters (UFSC)                  Unseen Fonts Unseen Characters (UFUC)
+                            RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑ RMSE↓ SSIM↑ LPIPS↓ FID↓ Acc(C)↑ Acc(S)↑
+            GAR-Font(V L2 ) 0.3070 0.5124 0.1458 10.7566 0.8552 0.1104 0.3100 0.5087 0.1473 11.0381 0.7979 0.1209
+            GAR-Font(V L4 ) 0.2983 0.5378 0.1279 7.9272 0.8970 0.1165 0.3006 0.5351 0.1290 8.1126 0.8665 0.1216
+            GAR-Font(M2 ) 0.2811 0.5724 0.1136 7.3145 0.9296 0.1203 0.2817 0.5731 0.1143 7.5306 0.9068 0.1289
+            GAR-Font(M4 ) 0.2764 0.5825 0.1098 7.4915 0.9260 0.1688 0.2776 0.5816 0.1107 7.6607 0.9039 0.1744
+
+
+
+4.5.2. On G-Tok’s Global and Causal Modeling                                    As Table 6 shows, decoupled variants consistently outper-
+We further ablate G-Tok’s ViT architecture to assess its                        form joint-trained counterparts under the same number of
+global and causal modeling. We pretrain three visual AR                         visual references. For example, GAR-Font(M4 ) attains the
+variants that differ in G-Tok and examine them on UFUC:                         best RMSE↓, LPIPS↓, and SSIM↑ on UFSC / UFUC, while
+1. CNN: a baseline CNN tokenizer without global context;                        GAR-Font(V L4 ) performs worse. GAR-Font(M2 ) also
+2. CNN + Non-causal ViT: a hybrid CNN-ViT tokenizer                             achieves the best FID↓ on UFSC (7.3145). These results
+   with self-attention that only supports global interaction;                   validate the decoupled vision–language training paradigm,
+3. CNN + Causal ViT: full G-Tok, hybrid CNN-ViT tok-                            where a pretrained visual encoder and a lightweight adapter
+   enizer with causal self-attention for sequential modeling.                   achieve efficient and robust text–visual alignment, improv-
+Table 4 shows that incorporating self-attention ViT im-                         ing generalization in multimodal FFG.
+proves performance over the CNN baseline, while the                             4.6. Limitations and Future Work
+causal ViT further enhances sequential modeling, achieving
+the best results across all metrics. Detailed UFSC results                      Although GAR-Font surpasses existing FFG methods in vi-
+are provided in the supplementary material.                                     sual fidelity, several limitations remain. First, the Multi-
+                                                                                modal Style Encoder currently relies on late adaptation via a
+4.5.3. On AR Generator’s Soft-decoding                                          language-style adapter; exploring earlier text-image fusion
+To validate the effectiveness of pixel-level supervision and                    may enable finer stylistic control and reduce reliance on vi-
+the soft decoding strategy, we conduct ablation experiments                     sual references. Second, our experiments are conducted at
+on our vision-only generator. The results in Table 5 demon-                     a resolution of 64 × 64, which may limit direct applicability
+strate that soft decoding achieves superior performance over                    to high-DPI scenarios; extending the framework to higher
+all metrics, particularly when combined with pixel-level                        resolutions may require G-Tok to handle longer token se-
+supervision. This combination yields the lowest RMSE↓,                          quences. Finally, we aim to expand controllability beyond
+LPIPS↓, and FID↓ while achieving the highest SSIM↑ and                          style and content, adding attributes like stroke thickness,
+classifier accuracies on UFSC and UFUC, indicating im-                          character width, and slant for more flexible font generation.
+proved pixel-level fidelity and faithful style preservation.
+4.5.4. On Multimodal Style Encoder’s Adaptation                                 5. Conclusion
+GAR-Font adopts a decoupled training paradigm: a visual                         In this paper, we present GAR-Font, a global-aware autore-
+encoder is pretrained, followed by multimodal control via a                     gressive framework for few-shot font generation that com-
+lightweight adapter. To validate this design, we compare it                     bines a hybrid global tokenizer, an autoregressive genera-
+with jointly training a multimodal style encoder under the                      tor with a multimodal style encoder, and a post-refinement
+same configuration on the large (L) dataset.                                    pipeline. GAR-Font achieves superior structural and stylis-
+   We evaluate two joint training variants, GAR-                                tic fidelity, outperforming prior vision-only baselines, while
+Font(V L2 ) and GAR-Font(V L4 ), against the decoupled                          demonstrating that language-guided adaptation can rival or
+multimodal variants GAR-Font(M2 ) and GAR-Font(M4 ).                            exceed heavy visual conditioning with improved flexibility.
+
+
+
+                                                                       524
+Acknowledgments                                                           [10] Huiwen Chang, Han Zhang, Lu Jiang, Ce Liu, and William T
+                                                                               Freeman. Maskgit: Masked generative image transformer.
+This work was supported by National Natural Science                            In Proceedings of the IEEE/CVF conference on computer vi-
+Foundation of China (Grant No.: 62372015), Leading                             sion and pattern recognition, pages 11315–11325, 2022. 2
+Projects in Key Research Fields of Language Funded by                     [11] Jie Chang, Yujun Gu, Ya Zhang, YanFeng Wang, and CM
+the National Language Commission, Center For Chinese                           Innovation. Chinese handwriting imitation with hierarchical
+Font Design and Research, Key Laboratory of Intelligent                        generative adversarial network. In BMVC, page 290, 2018.
+Press Media Technology, and National Engineering Re-                           2
+search Center of New Electronic Publishing Technologies.                  [12] Mark Chen, Alec Radford, Rewon Child, Jeffrey Wu, Hee-
+                                                                               woo Jun, David Luan, and Ilya Sutskever. Generative pre-
+                                                                               training from pixels. In International conference on machine
+References                                                                     learning, pages 1691–1703. PMLR, 2020. 2
+                                                                          [13] Xinping Chen, Xiao Ke, and Wenzhong Guo. If-font: Ideo-
+ [1] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine
+                                                                               graphic description sequence-following font generation. In
+     Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Men-
+                                                                               Advances in Neural Information Processing Systems, pages
+     sch, Katherine Millican, Malcolm Reynolds, et al. Flamingo:
+                                                                               14177–14199. Curran Associates, Inc., 2024. 1, 5
+     a visual language model for few-shot learning. Advances
+     in neural information processing systems, 35:23716–23736,            [14] Xiaokang Chen, Zhiyu Wu, Xingchao Liu, Zizheng Pan,
+     2022. 2, 3                                                                Wen Liu, Zhenda Xie, Xingkai Yu, and Chong Ruan. Janus-
+                                                                               pro: Unified multimodal understanding and generation with
+ [2] Roman Bachmann, Jesse Allardice, David Mizrahi, Enrico
+                                                                               data and model scaling. arXiv preprint arXiv:2501.17811,
+     Fini, Oğuzhan Fatih Kar, Elmira Amirloo, Alaaeldin El-
+                                                                               2025. 2
+     Nouby, Amir Zamir, and Afshin Dehghan. Flextok: Resam-
+                                                                          [15] Chaorui Deng, Deyao Zhu, Kunchang Li, Chenhui Gou,
+     pling images into 1d token sequences of flexible length. In
+                                                                               Feng Li, Zeyu Wang, Shu Zhong, Weihao Yu, Xiaonan Nie,
+     Forty-second International Conference on Machine Learn-
+                                                                               Ziang Song, et al. Emerging properties in unified multimodal
+     ing, 2025. 2
+                                                                               pretraining. arXiv preprint arXiv:2505.14683, 2025. 2
+ [3] Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin
+                                                                          [16] Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov,
+     Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun
+                                                                               Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner,
+     Tang, et al. Qwen2. 5-vl technical report. arXiv preprint
+                                                                               Mostafa Dehghani, Matthias Minderer, Georg Heigold, Syl-
+     arXiv:2502.13923, 2025. 6
+                                                                               vain Gelly, et al. An image is worth 16x16 words: Trans-
+ [4] Ankan Kumar Bhunia, Ayan Kumar Bhunia, Prithaj Baner-                     formers for image recognition at scale. arXiv preprint
+     jee, Aishik Konwer, Abir Bhowmick, Partha Pratim Roy, and                 arXiv:2010.11929, 2020. 3
+     Umapada Pal. Word level font-to-font image translation us-           [17] Patrick Esser, Robin Rombach, and Bjorn Ommer. Taming
+     ing convolutional recurrent generative adversarial networks.              transformers for high-resolution image synthesis. In Pro-
+     In 2018 24th International Conference on Pattern Recogni-                 ceedings of the IEEE/CVF conference on computer vision
+     tion (ICPR), pages 3645–3650. IEEE, 2018. 2                               and pattern recognition, pages 12873–12883, 2021. 2, 3
+ [5] Shiyue Cao, Yueqin Yin, Lianghua Huang, Yu Liu, Xin                  [18] Bin Fu, Fanghua Yu, Anran Liu, Zixuan Wang, Jie Wen, Jun-
+     Zhao, Deli Zhao, and Kaigi Huang. Efficient-vqgan: To-                    jun He, and Yu Qiao. Generate like experts: multi-stage font
+     wards high-resolution image generation with efficient vision              generation by incorporating font transfer process into diffu-
+     transformers. In Proceedings of the IEEE/CVF International                sion models. In Proceedings of the IEEE/CVF conference on
+     Conference on Computer Vision, pages 7368–7377, 2023. 2                   computer vision and pattern recognition, pages 6892–6901,
+ [6] Siyu Cao, Hangting Chen, Peng Chen, Yiji Cheng, Yutao                     2024. 2
+     Cui, Xinchi Deng, Ying Dong, Kipper Gong, Tianpeng Gu,               [19] Yue Gao, Yuan Guo, Zhouhui Lian, Yingmin Tang, and Jian-
+     Xiusen Gu, et al. Hunyuanimage 3.0 technical report. arXiv                guo Xiao. Artistic glyph image synthesis via one-stage few-
+     preprint arXiv:2509.23951, 2025. 2                                        shot learning. ACM Transactions on Graphics (ToG), 38(6):
+ [7] Yunkang Cao, Jiangning Zhang, Luca Frittoli, Yuqi Cheng,                  1–12, 2019. 2
+     Weiming Shen, and Giacomo Boracchi. Adaclip: Adapting                [20] Yuying Ge, Sijie Zhao, Jinguo Zhu, Yixiao Ge, Kun Yi, Lin
+     clip with hybrid learnable prompts for zero-shot anomaly de-              Song, Chen Li, Xiaohan Ding, and Ying Shan. Seed-x: Mul-
+     tection. In European Conference on Computer Vision, pages                 timodal models with unified multi-granularity comprehen-
+     55–72. Springer, 2024. 3                                                  sion and generation. arXiv preprint arXiv:2404.14396, 2024.
+ [8] Junbum Cha, Sanghyuk Chun, Gayoung Lee, Bado Lee,                         2
+     Seonghyeon Kim, and Hwalsuk Lee. Few-shot composi-                   [21] Haibin He, Xinyuan Chen, Chaoyue Wang, Juhua Liu, Bo
+     tional font generation with dual memory. In European con-                 Du, Dacheng Tao, and Qiao Yu. Diff-font: Diffusion model
+     ference on computer vision, pages 735–751. Springer, 2020.                for robust one-shot font generation. International Journal of
+     2                                                                         Computer Vision, 132(11):5372–5386, 2024. 1, 2, 5
+ [9] Bo Chang, Qiong Zhang, Shenyi Pan, and Lili Meng. Gener-             [22] Xiao He, Mingrui Zhu, Nannan Wang, and Xinbo Gao. Few-
+     ating handwritten chinese characters using cyclegan. In 2018              shot font generation by learning style difference and similar-
+     IEEE winter conference on applications of computer vision                 ity. IEEE Transactions on Circuits and Systems for Video
+     (WACV), pages 199–207. IEEE, 2018. 2                                      Technology, 34(9):8013–8025, 2024. 2
+
+
+
+
+                                                                    525
+[23] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-                     sive image generation with folded tokens. arXiv preprint
+     Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu Chen, et al.                   arXiv:2410.01756, 2024. 2
+     Lora: Low-rank adaptation of large language models. ICLR,              [36] Zhouhui Lian and Yichen Gao. Cvfont: Synthesizing chinese
+     1(2):3, 2022. 3                                                             vector fonts via deep layout inferring. In Computer Graphics
+[24] Mengqi Huang, Zhendong Mao, Quan Wang, and Yongdong                         Forum, pages 212–225. Wiley Online Library, 2022. 2
+     Zhang. Not all image regions matter: Masked vector quan-               [37] Zhouhui Lian, Bo Zhao, Xudong Chen, and Jianguo Xiao.
+     tization for autoregressive image generation. In Proceedings                Easyfont: a style learning-based system to easily build your
+     of the IEEE/CVF Conference on Computer Vision and Pat-                      large-scale handwriting fonts. ACM Transactions on Graph-
+     tern Recognition, pages 2002–2011, 2023. 2                                  ics (TOG), 38(1):1–18, 2018. 2
+[25] Yuanhui Huang, Weiliang Chen, Wenzhao Zheng, Yueqi                     [38] Bin Lin, Yang Ye, Bin Zhu, Jiaxi Cui, Munan Ning, Peng Jin,
+     Duan, Jie Zhou, and Jiwen Lu. Spectralar: Spectral autore-                  and Li Yuan. Video-llava: Learning united visual represen-
+     gressive visual generation. In Proceedings of the IEEE/CVF                  tation by alignment before projection. In Proceedings of the
+     International Conference on Computer Vision, pages 15842–                   2024 conference on empirical methods in natural language
+     15852, 2025. 1, 2                                                           processing, pages 5971–5984, 2024. 2
+[26] Zhihao Huang, Xi Qiu, Yukuo Ma, Yifu Zhou, Junjie Chen,                [39] Wei Liu, Fangyue Liu, Fei Ding, Qian He, and Zili Yi. Xmp-
+     Hongyuan Zhang, Chi Zhang, and Xuelong Li. Nfig: Au-                        font: Self-supervised cross-modality pre-training for few-
+     toregressive image generation with next-frequency predic-                   shot font generation. In Proceedings of the IEEE/CVF con-
+     tion. arXiv preprint arXiv:2503.07076, 2025. 2                              ference on computer vision and pattern recognition, pages
+[27] Yue Jiang, Zhouhui Lian, Yingmin Tang, and Jianguo Xiao.                    7905–7914, 2022. 2
+     Scfont: Structure-guided chinese font generation via deep
+                                                                            [40] Xiao-Qian Liu, Peng-Fei Zhang, Xin Luo, Zi Huang, and
+     stacked networks. In Proceedings of the AAAI conference on
+                                                                                 Xin-Shun Xu. Textadapter: Self-supervised domain adapta-
+     artificial intelligence, pages 4015–4022, 2019. 2
+                                                                                 tion for cross-domain text recognition. IEEE Transactions
+[28] Younghwi Kim, Seok Chan Jeong, and Sunghyun Sim.
+                                                                                 on Multimedia, 26:9854–9865, 2024. 3
+     Legacy learning using few-shot font generation models for
+                                                                            [41] Ying-Tian Liu, Zhifei Zhang, Yuan-Chen Guo, Matthew
+     automatic text design in metaverse content: Cases studies in
+                                                                                 Fisher, Zhaowen Wang, and Song-Hai Zhang. Dualvector:
+     korean and chinese. arXiv preprint arXiv:2408.16900, 2024.
+                                                                                 Unsupervised vector font synthesis with dual-part represen-
+     2
+                                                                                 tation. In Proceedings of the IEEE/CVF Conference on Com-
+[29] Yuxin Kong, Canjie Luo, Weihong Ma, Qiyuan Zhu, Sheng-
+                                                                                 puter Vision and Pattern Recognition, pages 14193–14202,
+     gao Zhu, Nicholas Yuan, and Lianwen Jin. Look closer to
+                                                                                 2023. 2
+     supervise better: One-shot font generation via component-
+     based discriminator. In Proceedings of the IEEE/CVF con-               [42] Jiasen Lu, Christopher Clark, Sangho Lee, Zichen Zhang,
+     ference on computer vision and pattern recognition, pages                   Savya Khosla, Ryan Marten, Derek Hoiem, and Aniruddha
+     13482–13491, 2022. 1                                                        Kembhavi. Unified-io 2: Scaling autoregressive multimodal
+                                                                                 models with vision language audio and action. In Proceed-
+[30] Myungkyu Koo, Subin Kim, Sangkyung Kwak, Jaehyun
+                                                                                 ings of the IEEE/CVF Conference on Computer Vision and
+     Nam, Seojin Kim, and Jinwoo Shin. Fontadapter: Instant
+                                                                                 Pattern Recognition, pages 26439–26455, 2024. 2
+     font adaptation in visual text generation. arXiv preprint
+     arXiv:2506.05843, 2025. 3                                              [43] Yuxuan Luo, Jiaqi Tang, Chenyi Huang, Feiyang Hao, and
+[31] Doyup Lee, Chiheon Kim, Saehoon Kim, Minsu Cho, and                         Zhouhui Lian. Callireader: contextualizing chinese callig-
+     Wook-Shin Han. Autoregressive image generation using                        raphy via an embedding-aligned vision-language model. In
+     residual quantization. In Proceedings of the IEEE/CVF con-                  Proceedings of the IEEE/CVF International Conference on
+     ference on computer vision and pattern recognition, pages                   Computer Vision, pages 23030–23040, 2025. 3
+     11523–11532, 2022. 2                                                   [44] Xiaoxiao Ma, Mohan Zhou, Tao Liang, Yalong Bai, Tiejun
+[32] Chunyuan Li, Cliff Wong, Sheng Zhang, Naoto Usuyama,                        Zhao, Biye Li, Huaian Chen, and Yi Jin. Star: Scale-wise
+     Haotian Liu, Jianwei Yang, Tristan Naumann, Hoifung Poon,                   text-conditioned autoregressive image generation. arXiv
+     and Jianfeng Gao. Llava-med: Training a large language-                     preprint arXiv:2406.10797, 2024. 2
+     and-vision assistant for biomedicine in one day. Advances              [45] Wei Pan, Anna Zhu, Xinyu Zhou, Brian Kenji Iwana, and
+     in Neural Information Processing Systems, 36:28541–28564,                   Shilin Li. Few shot font generation via transferring simi-
+     2023. 2                                                                     larity guided global style and quantization local style. In
+[33] Hua Li and Zhouhui Lian. Hfh-font: few-shot chinese font                    Proceedings of the IEEE/CVF International Conference on
+     synthesis with higher quality, faster speed, and higher reso-               Computer Vision, pages 19506–19516, 2023. 2
+     lution. ACM Transactions on Graphics (TOG), 43(6):1–16,                [46] Song Park, Sanghyuk Chun, Junbum Cha, Bado Lee, and
+     2024. 1, 2, 5                                                               Hyunjung Shim. Few-shot font generation with localized
+[34] Shilin Li and Anna Zhu. Fstdiff: One-shot font generation                   style representations and factorization. In Proceedings of the
+     via cross-font style transformation learning. In International              AAAI conference on artificial intelligence, pages 2393–2402,
+     Conference on Document Analysis and Recognition, pages                      2021. 1, 3, 4, 5
+     167–182. Springer, 2025. 2                                             [47] Song Park, Sanghyuk Chun, Junbum Cha, Bado Lee, and
+[35] Xiang Li, Kai Qiu, Hao Chen, Jason Kuen, Jiuxiang Gu,                       Hyunjung Shim. Multiple heads are better than one: Few-
+     Bhiksha Raj, and Zhe Lin. Imagefolder: Autoregres-                          shot font generation with multiple localized experts. In Pro-
+
+
+
+
+                                                                      526
+     ceedings of the IEEE/CVF international conference on com-                 the frontier of autoregressive visual generation through pre-
+     puter vision, pages 13900–13909, 2021. 2                                  training, sft, and rl. arXiv preprint arXiv:2504.11455, 2025.
+[48] Niki Parmar, Ashish Vaswani, Jakob Uszkoreit, Lukasz                      2
+     Kaiser, Noam Shazeer, Alexander Ku, and Dustin Tran. Im-             [61] Xinlong Wang, Xiaosong Zhang, Zhengxiong Luo, Quan
+     age transformer. In International conference on machine                   Sun, Yufeng Cui, Jinsheng Wang, Fan Zhang, Yueze Wang,
+     learning, pages 4055–4064. PMLR, 2018. 2                                  Zhen Li, Qiying Yu, et al. Emu3: Next-token prediction is
+[49] Ali Razavi, Aaron Van den Oord, and Oriol Vinyals. Gener-                 all you need. arXiv preprint arXiv:2409.18869, 2024. 2
+     ating diverse high-fidelity images with vq-vae-2. Advances           [62] Yizhi Wang and Zhouhui Lian. Deepvecfont: synthesizing
+     in neural information processing systems, 32, 2019. 2                     high-quality vector fonts via dual-modality learning. ACM
+[50] Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao                   Transactions on Graphics (TOG), 40(6):1–15, 2021. 2
+     Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK Li,                 [63] Yuqing Wang, Yizhi Wang, Longhui Yu, Yuesheng Zhu, and
+     Yang Wu, et al. Deepseekmath: Pushing the limits of math-                 Zhouhui Lian. Deepvecfont-v2: Exploiting transformers to
+     ematical reasoning in open language models. arXiv preprint                synthesize vector fonts with higher quality. In Proceedings
+     arXiv:2402.03300, 2024. 5                                                 of the IEEE/CVF conference on computer vision and pattern
+[51] Wenda Shi, Yiren Song, Dengming Zhang, Jiaming Liu, and                   recognition, pages 18320–18328, 2023. 2
+     Xingxing Zou. Fonts: Text rendering with typography and              [64] Yuqing Wang, Shuhuai Ren, Zhijie Lin, Yujin Han, Haoyuan
+     style controls. In Proceedings of the IEEE/CVF Interna-                   Guo, Zhenheng Yang, Difan Zou, Jiashi Feng, and Xihui Liu.
+     tional Conference on Computer Vision, pages 18463–18474,                  Parallelized autoregressive visual generation. In Proceedings
+     2025. 3                                                                   of the IEEE/CVF Conference on Computer Vision and Pat-
+[52] Peize Sun, Yi Jiang, Shoufa Chen, Shilong Zhang, Bingyue                  tern Recognition, pages 12955–12965, 2025. 2
+     Peng, Ping Luo, and Zehuan Yuan. Autoregressive model                [65] Ze Wang, Hao Chen, Benran Hu, Jiang Liu, Ximeng Sun,
+     beats diffusion: Llama for scalable image generation. arXiv               Jialian Wu, Yusheng Su, Xiaodong Yu, Emad Barsoum,
+     preprint arXiv:2406.06525, 2024. 2, 7                                     and Zicheng Liu. Instella-t2i: Pushing the limits of 1d
+[53] Quan Sun, Qiying Yu, Yufeng Cui, Fan Zhang, Xiaosong                      discrete latent space image generation. arXiv preprint
+     Zhang, Yueze Wang, Hongcheng Gao, Jingjing Liu, Tiejun                    arXiv:2506.21022, 2025. 2
+     Huang, and Xinlong Wang. Emu: Generative pretraining in              [66] Qi Wen, Shuang Li, Bingfeng Han, and Yi Yuan. Zigan:
+     multimodality. arXiv preprint arXiv:2307.05222, 2023. 2                   Fine-grained chinese calligraphy font generation via a few-
+[54] Licheng Tang, Yiyang Cai, Jiaming Liu, Zhibin Hong, Ming-                 shot style transfer approach. In Proceedings of the 29th
+     ming Gong, Minhu Fan, Junyu Han, Jingtuo Liu, Errui Ding,                 ACM international conference on multimedia, pages 621–
+     and Jingdong Wang. Few-shot font generation by learning                   629, 2021. 2
+     fine-grained local styles. In Proceedings of the IEEE/CVF            [67] Chenfei Wu, Jiahao Li, Jingren Zhou, Junyang Lin, Kaiyuan
+     conference on computer vision and pattern recognition,                    Gao, Kun Yan, Sheng-ming Yin, Shuai Bai, Xiao Xu, Yilei
+     pages 7895–7904, 2022. 2, 3, 4                                            Chen, et al. Qwen-image technical report. arXiv preprint
+[55] Shusen Tang, Zeqing Xia, Zhouhui Lian, Yingmin Tang, and                  arXiv:2508.02324, 2025. 2
+     Jianguo Xiao. Fontrnn: Generating large-scale chinese fonts          [68] Zeqing Xia, Bojun Xiong, and Zhouhui Lian. Vecfontsdf:
+     via recurrent neural network. In Computer Graphics Forum,                 Learning to reconstruct and synthesize high-quality vec-
+     pages 567–577. Wiley Online Library, 2019. 2                              tor fonts via signed distance functions. In Proceedings of
+[56] Vikas Thamizharasan, Difan Liu, Shantanu Agarwal,                         the IEEE/CVF conference on computer vision and pattern
+     Matthew Fisher, Michaël Gharbi, Oliver Wang, Alec Jacob-                 recognition, pages 1848–1857, 2023. 2
+     son, and Evangelos Kalogerakis. Vecfusion: Vector font gen-          [69] Junfei Xiao, Zheng Xu, Alan Yuille, Shen Yan, and Boyu
+     eration with diffusion. In Proceedings of the IEEE/CVF con-               Wang. Palm2-vadapter: Progressively aligned language
+     ference on computer vision and pattern recognition, pages                 model makes a strong vision-language adapter. arXiv
+     7943–7952, 2024. 2                                                        preprint arXiv:2402.10896, 2024. 3
+[57] Keyu Tian, Yi Jiang, Zehuan Yuan, Bingyue Peng, and Li-              [70] Yangchen Xie, Xinyuan Chen, Li Sun, and Yue Lu. Dg-
+     wei Wang. Visual autoregressive modeling: Scalable image                  font: Deformable generative networks for unsupervised font
+     generation via next-scale prediction. Advances in neural in-              generation. In Proceedings of the IEEE/CVF conference on
+     formation processing systems, 37:84839–84865, 2024. 2                     computer vision and pattern recognition, pages 5130–5140,
+[58] Aaron Van Den Oord, Oriol Vinyals, et al. Neural discrete                 2021. 2, 5
+     representation learning. Advances in neural information pro-         [71] Zhenhua Yang, Dezhi Peng, Yuxin Kong, Yuyi Zhang, Cong
+     cessing systems, 30, 2017. 2, 3                                           Yao, and Lianwen Jin. Fontdiffuser: One-shot font genera-
+[59] Chi Wang, Min Zhou, Tiezheng Ge, Yuning Jiang, Hujun                      tion via denoising diffusion with multi-scale content aggre-
+     Bao, and Weiwei Xu. Cf-font: Content fusion for few-shot                  gation and style contrastive learning. In Proceedings of the
+     font generation. In Proceedings of the IEEE/CVF conference                AAAI conference on artificial intelligence, pages 6603–6611,
+     on computer vision and pattern recognition, pages 1858–                   2024. 1, 2, 5
+     1867, 2023. 5                                                        [72] Mingshuai Yao, Yabo Zhang, Xianhui Lin, Xiaoming Li, and
+[60] Junke Wang, Zhi Tian, Xun Wang, Xinyu Zhang, Weilin                       Wangmeng Zuo. Vq-font: Few-shot font generation with
+     Huang, Zuxuan Wu, and Yu-Gang Jiang. Simplear: Pushing                    structure-aware enhancement and quantization. In Proceed-
+
+
+
+
+                                                                    527
+     ings of the AAAI Conference on Artificial Intelligence, pages
+     16407–16415, 2024. 1, 2, 3, 5
+[73] Jiahui Yu, Xin Li, Jing Yu Koh, Han Zhang, Ruoming Pang,
+     James Qin, Alexander Ku, Yuanzhong Xu, Jason Baldridge,
+     and Yonghui Wu. Vector-quantized image modeling with
+     improved vqgan. arXiv preprint arXiv:2110.04627, 2021. 2
+[74] Lili Yu, Bowen Shi, Ramakanth Pasunuru, Benjamin Muller,
+     Olga Golovneva, Tianlu Wang, Arun Babu, Binh Tang, Brian
+     Karrer, Shelly Sheynin, et al. Scaling autoregressive multi-
+     modal models: Pretraining and instruction tuning. arXiv
+     preprint arXiv:2309.02591, 2023. 2
+[75] Qihang Yu, Mark Weber, Xueqing Deng, Xiaohui Shen,
+     Daniel Cremers, and Liang-Chieh Chen. An image is worth
+     32 tokens for reconstruction and generation. Advances
+     in Neural Information Processing Systems, 37:128940–
+     128966, 2024. 1, 2
+[76] Qihang Yu, Ju He, Xueqing Deng, Xiaohui Shen, and Liang-
+     Chieh Chen. Randomized autoregressive visual generation.
+     In Proceedings of the IEEE/CVF International Conference
+     on Computer Vision, pages 18431–18441, 2025. 2
+[77] Kaiwen Zha, Lijun Yu, Alireza Fathi, David A Ross,
+     Cordelia Schmid, Dina Katabi, and Xiuye Gu. Language-
+     guided image tokenization for generation. In Proceedings
+     of the Computer Vision and Pattern Recognition Conference,
+     pages 15713–15722, 2025. 2
+[78] Yexun Zhang, Ya Zhang, and Wenbin Cai. Separating style
+     and content for generalized style transfer. In Proceedings of
+     the IEEE conference on computer vision and pattern recog-
+     nition, pages 8447–8455, 2018. 2
+[79] Yexun Zhang, Ya Zhang, and Wenbin Cai. Separating style
+     and content for generalized style transfer. In Proceedings of
+     the IEEE conference on computer vision and pattern recog-
+     nition, pages 8447–8455, 2018. 2
+[80] Anlin Zheng, Haochen Wang, Yucheng Zhao, Weipeng
+     Deng, Tiancai Wang, Xiangyu Zhang, and Xiaojuan Qi.
+     Holistic tokenizer for autoregressive image generation. In
+     Proceedings of the IEEE/CVF International Conference on
+     Computer Vision, pages 16916–16926, 2025. 2
+
+
+
+
+                                                                     528
+

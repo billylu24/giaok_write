@@ -1,0 +1,32 @@
+{
+  "status": "completed",
+  "kind": "official_pretrained_inference",
+  "characters": 8,
+  "references": 3,
+  "generated_comparison_images": 24,
+  "official_example_images": 1,
+  "repeat_images": 1,
+  "total_generated_images": 26,
+  "mean_sampling_seconds": 0.6570400927509278,
+  "min_sampling_seconds": 0.5988892039749771,
+  "max_sampling_seconds": 0.78260641801171,
+  "official_example_seconds": 1.332613398990361,
+  "repeat_seconds": 0.6779311709979083,
+  "repeat_bitwise_equal": true,
+  "load_seconds": 1.234504157997435,
+  "peak_allocated_gpu_bytes": 576875008,
+  "peak_reserved_gpu_bytes": 660602880,
+  "weight_checksums": {
+    "unet": "6bde1920ac8d843edbfffa6e6befedc5da39f753b927ce272cfc85cf99dcbfdb",
+    "style_encoder": "82eb56abc37ebf7e662d1141a45d8a54ad4bc0ee8aa749c4bb7bc7bddb6cca46",
+    "content_encoder": "e5b52582473579031bd0f935abbb9a3e5cb3727dccc25e75f77d1f41d3cbb3ff"
+  },
+  "content_accuracy": null,
+  "style_score": null,
+  "trained_on_CASIA_here": false,
+  "limitations": [
+    "Font examples are not user handwriting.",
+    "No statistically valid OCR/FID/HWD evaluation on this tiny set.",
+    "This run does not train a general foundation model."
+  ]
+}

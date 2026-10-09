@@ -1,0 +1,27 @@
+WEIGHT OK: ckpt/content_encoder.pth
+Traceback (most recent call last):
+  File "/home/giaok/PycharmProjects/giaok_write/scripts/download_resources.py", line 85, in <module>
+    globals()[args.resource]()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/giaok/PycharmProjects/giaok_write/scripts/download_resources.py", line 72, in weights
+    files=list(pool.map(one,[x for x in entries if x['type']=='file']))
+  File "/usr/lib/python3.14/concurrent/futures/_base.py", line 639, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/lib/python3.14/concurrent/futures/_base.py", line 311, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/usr/lib/python3.14/concurrent/futures/_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/concurrent/futures/_base.py", line 395, in __get_result
+    raise self._exception
+  File "/usr/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/usr/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/home/giaok/PycharmProjects/giaok_write/scripts/download_resources.py", line 65, in one
+    sha=download(f'https://huggingface.co/spaces/{repo}/resolve/{rev}/{path}?download=true',dest)
+  File "/home/giaok/PycharmProjects/giaok_write/scripts/download_resources.py", line 23, in download
+    raise RuntimeError(result.stderr.strip())
+RuntimeError: curl: (56) Recv failure: Connection reset by peer

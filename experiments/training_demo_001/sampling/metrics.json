@@ -1,0 +1,32 @@
+{
+  "status": "completed",
+  "kind": "sampling_after_1000_step_demo_training",
+  "characters": 3,
+  "references": 3,
+  "generated_comparison_images": 9,
+  "official_example_images": 1,
+  "repeat_images": 1,
+  "total_generated_images": 11,
+  "mean_sampling_seconds": 0.6034925496723089,
+  "min_sampling_seconds": 0.6014659589855,
+  "max_sampling_seconds": 0.6063442070153542,
+  "official_example_seconds": 1.0420465559873264,
+  "repeat_seconds": 0.6048703530104831,
+  "repeat_bitwise_equal": true,
+  "load_seconds": 1.08402552298503,
+  "peak_allocated_gpu_bytes": 576875008,
+  "peak_reserved_gpu_bytes": 660602880,
+  "weight_checksums": {
+    "unet": "5c0a27f7a472f1ac7e11469364b4159e33dd7f45d4630da6f3a88dd1a131195b",
+    "style_encoder": "f15241bbb986a188dafe4b59c35400568b4dbc586d3379d816f7ad2c0530987e",
+    "content_encoder": "ca0461f28338257ac91acf271801c067dc503c53dd07333607c8c35390fe4fe3"
+  },
+  "content_accuracy": null,
+  "style_score": null,
+  "trained_on_CASIA_here": false,
+  "limitations": [
+    "Training example styles and characters; not a held-out test.",
+    "12 target images are insufficient to train a general model.",
+    "No personal handwriting, CASIA or reliable OCR/FID/HWD evaluation."
+  ]
+}

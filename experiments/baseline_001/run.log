@@ -1,0 +1,54 @@
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Loading official models...
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:88: FutureWarning: Accessing config attribute `style_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'style_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.style_encoder'.
+  style_img_feature, _, style_residual_features = self.style_encoder(style_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:94: FutureWarning: Accessing config attribute `content_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'content_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.content_encoder'.
+  content_img_feture, content_residual_features = self.content_encoder(content_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:97: FutureWarning: Accessing config attribute `content_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'content_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.content_encoder'.
+  style_content_feature, style_content_res_features = self.content_encoder(style_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:102: FutureWarning: Accessing config attribute `unet` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'unet' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.unet'.
+  out = self.unet(
+Load the down block  DownBlock2D
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  DownBlock2D
+Load the up block  UpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  UpBlock2D
+Param count for Ds initialized parameters: 20591296
+Get CG-GAN Style Encoder!
+Param count for Ds initialized parameters: 1187008
+Get CG-GAN Content Encoder!
+{"character": "湖", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg", "style_index": 0, "seed": 123, "seconds": 0.6183089170081075, "file": "outputs/U6E56_style0_seed123.png", "sha256": "b53e51bdc0ce0d166cca05a745a04ef0554a76914fb2d9a6eaac303d2f6c7899"}
+{"character": "湖", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg", "style_index": 1, "seed": 123, "seconds": 0.6133844029973261, "file": "outputs/U6E56_style1_seed123.png", "sha256": "23b3ed83d5e4bd61b79582a179831de91ec23c41f78d6c8b645804142b85dad5"}
+{"character": "湖", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg", "style_index": 2, "seed": 123, "seconds": 0.6428668509761337, "file": "outputs/U6E56_style2_seed123.png", "sha256": "bfb985913c15266670d32cd7479673c9520300de4695e0099966c880a46ef0be"}
+{"character": "海", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg", "style_index": 0, "seed": 124, "seconds": 0.6111627600039355, "file": "outputs/U6D77_style0_seed124.png", "sha256": "dddb7f9c3c88b4f7f87db170378b73fcaaa60b1bc347b9953ed9d75db52bd27b"}
+{"character": "海", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg", "style_index": 1, "seed": 124, "seconds": 0.601209012005711, "file": "outputs/U6D77_style1_seed124.png", "sha256": "b88eb5b65596d2c9646531207cf1229faefda7022ac34ae53bae9a49397af3e4"}
+{"character": "海", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg", "style_index": 2, "seed": 124, "seconds": 0.5988892039749771, "file": "outputs/U6D77_style2_seed124.png", "sha256": "bd17704dee82a9bb5ebb74dc1cca2475e5b0496eb172a3adaa66eaf4c1266253"}
+{"character": "明", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg", "style_index": 0, "seed": 125, "seconds": 0.6023454259848222, "file": "outputs/U660E_style0_seed125.png", "sha256": "b789e2b8cc34721bd5f27e590b903ff2a30aa50c0261e6a729791839d09c6c3d"}
+{"character": "明", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg", "style_index": 1, "seed": 125, "seconds": 0.6044377920043189, "file": "outputs/U660E_style1_seed125.png", "sha256": "7c3e25fed3fd128f94e5753d0f359a6562c307b2d0d5647f171f62f1226bab22"}
+{"character": "明", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg", "style_index": 2, "seed": 125, "seconds": 0.6026213699951768, "file": "outputs/U660E_style2_seed125.png", "sha256": "53a70488276cbe6770c67acf66c68851afd232a224bc1c771762902f8ddf12b0"}
+{"character": "好", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg", "style_index": 0, "seed": 126, "seconds": 0.6001877859816886, "file": "outputs/U597D_style0_seed126.png", "sha256": "2ee18f97187a08392a7684c516d514bff77249c19e149e5454c59ffe72c1d976"}
+{"character": "好", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg", "style_index": 1, "seed": 126, "seconds": 0.6023978060111403, "file": "outputs/U597D_style1_seed126.png", "sha256": "bb9be5144bcf65cc17a8eb4388fbb24e48fd342a3caa83aa063982398fbcb87e"}
+{"character": "好", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg", "style_index": 2, "seed": 126, "seconds": 0.6302282820106484, "file": "outputs/U597D_style2_seed126.png", "sha256": "4052e06feb4202b4952b5eb78ace0947618dbbf306eeb40b6089b7f80a201b22"}
+{"character": "我", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg", "style_index": 0, "seed": 127, "seconds": 0.6326434410002548, "file": "outputs/U6211_style0_seed127.png", "sha256": "0c1e1d18b4119011fd98617211e18ec11772f69f2b65396c3b81d79d9af75ed3"}
+{"character": "我", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg", "style_index": 1, "seed": 127, "seconds": 0.6555056000070181, "file": "outputs/U6211_style1_seed127.png", "sha256": "51bd0ef80630beb6faa1651f3b2ebb51e1b33a0631217590a8359d158d343c78"}
+{"character": "我", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg", "style_index": 2, "seed": 127, "seconds": 0.6482411879987922, "file": "outputs/U6211_style2_seed127.png", "sha256": "dbadf67a2a15aa25f4a0182d746acf0973a0d975e7aa025cb52189076ee6344e"}
+{"character": "清", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg", "style_index": 0, "seed": 128, "seconds": 0.6713623579998966, "file": "outputs/U6E05_style0_seed128.png", "sha256": "0130dcedfe44ef9cfb4585c47056b9e48106dd6672c4cfb6310f0e46e140fb8b"}
+{"character": "清", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg", "style_index": 1, "seed": 128, "seconds": 0.6994503529858775, "file": "outputs/U6E05_style1_seed128.png", "sha256": "edfb64e4f67282dd9c440609699121d92d1ba037d6f5c0e523a451112cda71ec"}
+{"character": "清", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg", "style_index": 2, "seed": 128, "seconds": 0.7183599100098945, "file": "outputs/U6E05_style2_seed128.png", "sha256": "c85cdd4bd699dbadba016730a35b8c53db027bfb55638d7a333b447280e4015f"}
+{"character": "永", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg", "style_index": 0, "seed": 129, "seconds": 0.663429600012023, "file": "outputs/U6C38_style0_seed129.png", "sha256": "68e8d99b99337f449be342cb6d2d2f810e80ac5f724775537da9bb24a514d338"}
+{"character": "永", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg", "style_index": 1, "seed": 129, "seconds": 0.6883967800240498, "file": "outputs/U6C38_style1_seed129.png", "sha256": "ae6756f5ae5231dedd2fbd713a6e73555b45eea643bb6fcdbbbd3418ee43c59d"}
+{"character": "永", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg", "style_index": 2, "seed": 129, "seconds": 0.7213463200023398, "file": "outputs/U6C38_style2_seed129.png", "sha256": "fcccd82e2daacc650aebbdd8a3dca295692bddb9e229e85e2111147dced014f1"}
+{"character": "鑫", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg", "style_index": 0, "seed": 130, "seconds": 0.7820284120098222, "file": "outputs/U946B_style0_seed130.png", "sha256": "06be14210c24f7d46a704bf3cf087fe177dee2f458920f845491f3a5f78fd254"}
+{"character": "鑫", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg", "style_index": 1, "seed": 130, "seconds": 0.7775522370066028, "file": "outputs/U946B_style1_seed130.png", "sha256": "7071b89e0955cf2d6981a09a35bf5b72ca58199e5e1f8aec76025f3484331b2a"}
+{"character": "鑫", "reference": "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg", "style_index": 2, "seed": 130, "seconds": 0.78260641801171, "file": "outputs/U946B_style2_seed130.png", "sha256": "0d78a46ae7cf4d9a593dceb1e694b454a898eaa630b251fddaf559add7084657"}
+COMPLETE {"status": "completed", "kind": "official_pretrained_inference", "characters": 8, "references": 3, "generated_comparison_images": 24, "official_example_images": 1, "repeat_images": 1, "total_generated_images": 26, "mean_sampling_seconds": 0.6570400927509278, "min_sampling_seconds": 0.5988892039749771, "max_sampling_seconds": 0.78260641801171, "official_example_seconds": 1.332613398990361, "repeat_seconds": 0.6779311709979083, "repeat_bitwise_equal": true, "load_seconds": 1.234504157997435, "peak_allocated_gpu_bytes": 576875008, "peak_reserved_gpu_bytes": 660602880, "weight_checksums": {"unet": "6bde1920ac8d843edbfffa6e6befedc5da39f753b927ce272cfc85cf99dcbfdb", "style_encoder": "82eb56abc37ebf7e662d1141a45d8a54ad4bc0ee8aa749c4bb7bc7bddb6cca46", "content_encoder": "e5b52582473579031bd0f935abbb9a3e5cb3727dccc25e75f77d1f41d3cbb3ff"}, "content_accuracy": null, "style_score": null, "trained_on_CASIA_here": false, "limitations": ["Font examples are not user handwriting.", "No statistically valid OCR/FID/HWD evaluation on this tiny set.", "This run does not train a general foundation model."]}

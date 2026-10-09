@@ -1,0 +1,74 @@
+[
+  {
+    "id": "FontDiffuser",
+    "title": "FontDiffuser: One-Shot Font Generation via Denoising Diffusion with Multi-Scale Content Aggregation and Style Contrastive Learning",
+    "venue": "AAAI 2024",
+    "pdf_url": "https://arxiv.org/pdf/2312.12142",
+    "code_url": "https://github.com/yeungchenwa/FontDiffuser"
+  },
+  {
+    "id": "One-DM",
+    "title": "One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation",
+    "venue": "ECCV 2024",
+    "pdf_url": "https://arxiv.org/pdf/2409.04004",
+    "code_url": "https://github.com/dailenson/One-DM"
+  },
+  {
+    "id": "HFH-Font",
+    "title": "HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution",
+    "venue": "ACM TOG 43(6), 2024",
+    "pdf_url": "https://arxiv.org/pdf/2410.06488",
+    "code_url": ""
+  },
+  {
+    "id": "TGC-Diff",
+    "title": "Template-Guided Cascaded Diffusion for Stylized Handwritten Chinese Text-Line Generation",
+    "venue": "ICDAR 2025",
+    "pdf_url": "https://link.springer.com/content/pdf/10.1007/978-3-032-04614-7_9.pdf",
+    "code_url": "https://github.com/newbie2niubility/TGC-Diff",
+    "publication_note": "ICDAR 2025；下载的 Springer PDF 版权年份为 2026。"
+  },
+  {
+    "id": "DiffBrush",
+    "title": "Beyond Isolated Words: Diffusion Brush for Handwritten Text-Line Generation",
+    "venue": "ICCV 2025",
+    "pdf_url": "https://openaccess.thecvf.com/content/ICCV2025/papers/Dai_Beyond_Isolated_Words_Diffusion_Brush_for_Handwritten_Text-Line_Generation_ICCV_2025_paper.pdf",
+    "code_url": ""
+  },
+  {
+    "id": "GAR-Font",
+    "title": "Beyond Patches: Global-aware Autoregressive Model for Multimodal Few-Shot Font Generation",
+    "venue": "CVPR 2026",
+    "pdf_url": "https://openaccess.thecvf.com/content/CVPR2026/papers/Cai_Beyond_Patches_Global-aware_Autoregressive_Model_for_Multimodal_Few-Shot_Font_Generation_CVPR_2026_paper.pdf",
+    "code_url": "",
+    "project_url": "https://xtryer-s.github.io/projects_pages/GAR_Font"
+  },
+  {
+    "id": "SLD-Font",
+    "title": "Disentangle to Create: Structure-Level Disentangled Diffusion Model for Few-Shot Chinese Font Generation",
+    "venue": "2026 preprint",
+    "pdf_url": "https://arxiv.org/pdf/2602.18874",
+    "code_url": ""
+  },
+  {
+    "id": "DiffInk",
+    "title": "DiffInk: Glyph- and Style-Aware Latent Diffusion Transformer for Text to Online Handwriting Generation",
+    "venue": "ICLR 2026",
+    "pdf_url": "https://arxiv.org/pdf/2509.23624",
+    "code_url": "https://github.com/awei669/DiffInk"
+  },
+  {
+    "id": "CONSTANT",
+    "title": "CONSTANT: Towards High-Quality One-Shot Handwriting Generation with Patch Contrastive Enhancement and Style-Aware Quantization",
+    "venue": "WACV 2026",
+    "pdf_url": "https://openaccess.thecvf.com/content/WACV2026/papers/Le_CONSTANT_Towards_High-Quality_One-Shot_Handwriting_Generation_with_Patch_Contrastive_Enhancement_WACV_2026_paper.pdf",
+    "code_url": "https://github.com/duylebkHCM/CONSTANT"
+  },
+  {
+    "id": "Latent-Diffusion",
+    "title": "High-Resolution Image Synthesis with Latent Diffusion Models",
+    "venue": "CVPR 2022",
+    "pdf_url": "https://arxiv.org/pdf/2112.10752",
+    "code_url": "https://github.com/CompVis/latent-diffusion"
+  }
+]

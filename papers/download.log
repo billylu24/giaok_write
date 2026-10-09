@@ -1,0 +1,11 @@
+PDF OK: DiffBrush
+PDF OK: TGC-Diff
+PDF OK: FontDiffuser
+PDF FAILED: GAR-Font: curl: (56) OpenSSL SSL_read: OpenSSL/3.5.5: error:0A000126:SSL routines::unexpected eof while reading, errno 0
+PDF OK: HFH-Font
+PDF OK: SLD-Font
+PDF OK: One-DM
+PDF OK: CONSTANT
+PDF OK: Latent-Diffusion
+PDF OK: DiffInk
+PAPER FAILURES: ['GAR-Font']

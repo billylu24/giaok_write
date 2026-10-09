@@ -1,0 +1,13 @@
+{
+  "python": "3.12.14",
+  "torch": "2.14.0+cu130",
+  "torchvision": "0.29.0+cu130",
+  "torch_installation": "Independent package copies (cp --reflink=auto) from an existing verified local Python 3.12 CUDA environment. Other project environment was not modified.",
+  "local_source": "/home/giaok/PycharmProjects/CrossView-MedMNIST3D/.venv/lib/python3.12/site-packages",
+  "compatibility_changes": [
+    "Official Torch 1.13/CUDA 11.7 cannot be used for this GPU baseline.",
+    "Transformers 4.33.1 requires tokenizers 0.13.3, whose Python 3.12 install attempted a Rust source build. Use transformers 4.44.2/tokenizers 0.19.1 wheels instead.",
+    "No model architecture modifications made.",
+    "Initialize CUDA before reset_peak_memory_stats to support the installed runtime."
+  ]
+}

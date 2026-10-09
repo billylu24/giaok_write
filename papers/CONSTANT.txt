@@ -1,0 +1,728 @@
+                      This WACV paper is the Open Access version, provided by the Computer Vision Foundation.
+                                   Except for this watermark, it is identical to the accepted version;
+                             the final published version of the proceedings is available on IEEE Xplore.
+
+
+
+
+   CONSTANT: Towards High-Quality One-Shot Handwriting Generation with
+       Patch Contrastive Enhancement and Style-Aware Quantization
+
+          Anh-Duy Le1 , Van-Linh Pham1 , Thanh-Nam Vo1 , Xuan Toan Mai2 , Tuan-Anh Tran1,2
+                  1
+                    Viettel Artiﬁcial Intelligence and Data Services Center, Vietnam
+                        2
+                          Ho Chi Minh City University of Technology, Vietnam
+    {leanhduy497, phamvanlinh143, thanhnam040501}@gmail.com, {mxtoan, trtanh}@hcmut.edu.vn
+
+
+
+                         Abstract                                                                                      Ligature
+
+
+
+
+One-shot styled handwriting image generation, despite
+achieving impressive results in recent years, remains chal-
+                                                                                    Stroke Width
+lenging due to the difﬁculty in capturing the intricate                                                                           Slant
+
+
+and diverse characteristics of human handwriting by using
+solely a single reference image. Existing methods still strug-
+gle to generate visually appealing and realistic handwritten
+                                                                                (a) Handwritten style concepts in an embedding space
+images and adapt to complex, unseen writer styles, strug-
+gling to isolate invariant style features (e.g., slant, stroke
+width, curvature) while ignoring irrelevant noise. To tackle                         HiGAN+
+
+this problem, we introduce Patch Contrastive Enhance-                                One-DM
+ment and Style-Aware Quantization via Denoising Diffu-
+                                                                               CONSTANT (Ours)
+sion (CONSTANT), a novel one-shot handwriting genera-
+tion via diffusion model. CONSTANT leverages three key                        (b) Style mimicking ability between our CONSTANT and
+innovations: 1) a Style-Aware Quantization (SAQ) module                       other methods (One-DM [4], HiGAN+ [11])
+that models style as discrete visual tokens capturing distinct
+                                                                        Figure 1. Our method leverages the idea of vector quantization
+concepts; 2) a contrastive objective to ensure these tokens
+                                                                        to learn the embedding space of diverse style concepts, enabling
+are well-separated and meaningful in the embedding style                better adaptation to new styles than other approaches.
+space; 3) a latent patch-based contrastive (LLatentP CE )
+objective help improving quality and local structures by                ence. However, this task remains highly challenging. It
+aligning multiscale spatial patches of generated and real               requires accurately capturing a writer’s unique and variable
+features in latent space. Extensive experiments and analysis            style—including features like stroke width, curvature, and
+on benchmark datasets from multiple languages, including                slant, plus subtle nuances like ink density—from a single
+English, Chinese, and our proposed ViHTGen dataset for                  image. Despite recent advancements in generative models,
+Vietnamese, demonstrate the superiority of adapting to new              current methods still struggle to extract these core stylistic
+reference styles and producing highly detailed images of our            attributes from unseen writers and produce high-quality
+method over state-of-the-art approaches. Code is available              results. Consequently, the generated image is often stylis-
+at GitHub                                                               tically incomplete; for example, a model might replicate a
+                                                                        writer’s slant but fail to capture the variations in their ink
+                                                                        pressure. This leads to the central question: How can we ef-
+1. Introduction                                                         fectively capture the complex stylistic characteristics from
+                                                                        a single handwriting sample to generate diverse, realistic,
+Handwriting synthesis is a signiﬁcant problem with appli-               and high-quality text?
+cations ranging from assistive technology to data augmenta-                Previous approaches for handwriting synthesis have
+tion for robust authentication [17] and text recognition sys-           largely relied on Generative Adversarial Networks
+tems [19]. The one-shot approach, which generates hand-                 (GANs) [2, 8, 10, 11, 20, 33]. While capable of generating
+writing from a single style example, is crucial for practi-             diverse samples, GANs often struggle to produce realistic
+cal applications where users may only provide one refer-                images, especially for complex writing styles, and are
+
+
+
+                                                                 4295
+known for unstable training.                                            reference images. Paired with a style contrastive objec-
+    More recently, Diffusion Models (DMs) [7, 16, 36] have              tive (LSCE ), it strengthens distinctions between different
+emerged as a powerful alternative, demonstrating supe-                  styles. 2) We propose a new contrastive learning objec-
+rior performance over GANs in both quality and diver-                   tive LLatentP CE that leverages patch-level latent features
+sity [4, 29, 30, 49]. However, a key limitation remains:                in the DMs to reﬁne local details and maintain consistency
+the inability to comprehensively model style information.               in generated images. 3) We performed a thorough eval-
+For instance, One-DM [4], a current state-of-the-art (SOTA)             uation on multiple language datasets, including our new
+one-shot DMs method, uses a high-frequency style encoder                ViHTGen dataset, conﬁrming our method’s state-of-the-art
+that overlooks important features like stroke density and               performance in terms of visual quality, style quality, and
+color, while other approaches [2, 33] employ computation-               readability.
+ally intensive Transformer-based encoders [43]. To improve
+quality, many methods [2, 30, 33] resort to few-shot gener-             2. Related Works
+ation (using many reference images), a setting that is less
+practical than the one-shot approach.                                   2.1. Handwritten Text Generation
+    In this work, we focus on improving one-shot hand-                  Early methods [2, 8, 10, 11, 20, 27, 33, 47] primarily relied
+written text generation (HTG) performance by introduc-                  on GANs due to their capability to model complex data dis-
+ing a novel approach called Patch Contrastive Enhance-                  tributions inherent in handwriting. In GANs, one-shot gen-
+ment and Style-Aware Quantization via Denoising Diffu-                  eration methods like ScrabbleGAN [8] utilize random noise
+sion (CONSTANT). Our method harnesses vector quanti-                    as style input to synthesize handwritten images, thus unable
+zation (VQ), a simple yet effective approach, to represent              to control the writers’ style. HiGAN [10] proposes a CNN-
+complex handwriting style information as discrete visual to-            based style encoder to extract style features combined with
+kens, where each token corresponds to a fundamental style               a text recognition loss to improve quality. This line of work
+concept within an embedding space, mirroring how humans                 was further reﬁned by HiGAN+ [11], which incorporated
+might intuitively categorize handwriting traits (see Fig. 1a).          a contextual loss and a PatchGAN-based [5] discriminator,
+Unlike methods like One-DM [4] that rely on ﬁxed high-                  and SmartPatch [27], which employed a similar lightweight
+frequency ﬁlters, our learned “style concepts” are more ro-             patch discriminator.
+bust at capturing the core characteristics from a single ref-               More recently, the ﬁeld has shifted towards DMs for
+erence image while effectively ﬁltering out incidental noise            their ability to generate high-quality, diverse images. Mod-
+(see Fig. 1b). We also incorporate a style contrastive en-              els like WordStylist [29] and CTIG-DM [49] demonstrated
+hancement objective, LSCE , to reﬁne the latent space by                the potential of DMs but were limited by their reliance on
+promoting similarity among style features from the same                 predeﬁned writer IDs, preventing generalization to unseen
+writer while distinguishing them from those of different                styles. Similarly, font-focused DMs like Diff-Font [13] and
+writers. To boost synthesis quality and avoid issues like               FontDiffuser [45] apply diffusion with contrastive elements
+blurriness or inconsistencies between target and generated              for one-shot style adaptation, yet target structured glyphs
+outputs during training, we propose a Latent Patch Con-                 rather than variable handwriting. The most relevant one-
+trastive Enhancement (LLatentP CE ), an auxiliary objective             shot diffusion model, One-DM [4], addresses this by using
+that goes beyond the standard denoising loss used by One-               an enhanced style encoder; however, its reliance on a pre-
+DM [4] by using contrastive learning to align the latent fea-           deﬁned Laplacian kernel to extract high-frequency informa-
+tures of generated and target images, sharpening local de-              tion can be brittle. Our approach overcomes this limitation
+tails for better results by maximizing mutual information               with two key contributions. First, our SAQ module learns
+between the locations of corresponding target and generated             an adaptive, discrete vocabulary of “style concepts”, mak-
+patches. Unlike multi-stage training in works like [4, 11],             ing it more robust to the diverse and noisy styles found in
+our entire process operates in a single, end-to-end stage. To           real-world images. Second, we introduce LLatentP CE ob-
+assess our method on Vietnamese, we created a new HTG                   jective to speciﬁcally improve the local detail and realism
+dataset, ViHTGen, speciﬁcally for Vietnamese. We tested                 of the generated images.
+our approach across multiple datasets in various languages,                 Alternative techniques employ a few-shot strategy to en-
+including English, Chinese, and our proposed ViHTGen, to                hance style imitation. GANWriting [20] employs 15 refer-
+showcase its effectiveness. In summary, our contributions               ence images to extract style features. In contrast, HWT [2]
+are: 1) We present a Style-Aware Quantization (SAQ) mod-                adopts a Transformer architecture instead of CNN, im-
+ule that treats each style concept as a discrete visual token           plementing an encoder-decoder Transformer framework to
+for extracting handwriting styles, enabling clearer separa-             generate stylized text. VATr [33] and VATr++ [42] reﬁne
+tion of style representations, thus helping reduce the loss             this by treating characters as continuous query vectors in a
+of extracted style features when it comes to complex style              Transformer decoder. DiffusionPen [30] utilizes DMs com-
+
+
+
+                                                                 4296
+bined with a metric learning objective to improve generated             Furthermore, to better encourage our model to learn mutual
+quality but still relies on 5-shot reference images. Departing          information between different samples from the same writer
+from these methods, our work concentrates on the one-shot               and discourage irrelevant features, we leverage LSCE ,
+learning paradigm, which presents signiﬁcant challenges                 which receives a global style representation after combin-
+while offering greater practical applicability.                         ing different style concepts from SAQ module to discover
+                                                                        a more discriminative style embedding space as shown in
+2.2. Disentangled Representation Learning (DRL)                         Fig. 2b. Besides the denoising objective Ldenoising of
+DRL [44] focuses on creating models that identify and sep-              LDMs1 , our LLatentP CE helps to preserve the visual qual-
+arate the underlying factors within data into distinct, seman-          ity and details of generated images inspired by [1]. For
+tically meaningful representations. Based on that concept,              the textual content encoding, we utilize a 3-layer Trans-
+some works including [9, 18] further explore speciﬁc induc-             former [43] encoder, our content encoder represents each
+tive biases and model architectures to enhance DRL by us-               input character as an embedding vector independently,
+ing discrete representations where each discrete value can              speciﬁcally, given the input word C = {ci }L
+                                                                                                                   i=1 , our encoder
+be assigned a consistent meaning. This concept has been                 extract an embedding vector Fc ∈ RL×d , where d is the
+applied to tasks like text image super-resolution. For exam-            channel dimension, which will allow our model more robust
+ple, [23] employs a codebook for Chinese characters, and                and be able to generate OOV words more easily. Both style
+[3] trained a VAE where representations of similar letters              and content features are then input as the context informa-
+are closer. Different from those works, our approach aims               tion to the cross-attention module inside the DM. Overall,
+to leverage discrete representations through VQ to model                our proposed method is jointly optimized in an end-to-end
+complex style concepts in handwriting, which is more difﬁ-              manner by the combination of the following objectives, as
+cult than the global character structure of [3, 23].                    illustrated in Fig. 2a:
+                                                                         L = Ldenoising +α×(LLatentP CE +LSCE +LSAQ ) (1)
+3. Methodology
+                                                                        Where α is the weight of all supported objectives, empiri-
+3.1. Problem Deﬁnition                                                  cally, we choose α = 0.1.
+The purpose of a one-shot handwriting generation model
+                                                                        3.3. Style-Aware Quantization
+is to generate any handwritten text images conditioned on
+a reference style image and textual content information.                As discussed in the above section, we propose a SAQ mod-
+Mathematically, given a reference image Xs from a writer                ule to extract compact and discriminative style representa-
+Ws , and a word input C = {ci |ci ∈ A}L  i=1 , where A is the
+                                                                        tions from handwriting images. Our core motivation is to
+alphabet, L is the length of word input, our goal is to gen-            move beyond monolithic, continuous style vectors that can
+erate new image Xt , subscript “t” stand for “target”, that             overﬁt to noise in a single reference image. To achieve
+represent textual content C that does not depend on any pre-            this, we propose to take advantage of discrete representa-
+deﬁned corpus with the same handwritten style as Xs .                   tion ability of VQ [41] to capture different style concepts
+                                                                        as discrete embedding tokens inside a codebook embedding
+3.2. Overall Architecture                                               that covers a wide range of style variations in handwriting.
+Our method utilizes Latent Diffusion Models (LDMs) [36],                Our proposed SAQ employs a pretrained InceptionV3 [38]
+which are more computationally efﬁcient and use less mem-               backbone, leveraging its multi-scale feature extraction ca-
+ory than traditional pixel-level models [7, 16] that process            pabilities from ImageNet [6], widely utilized in style trans-
+high-resolution images directly. As shown in Fig. 2a, our               fer [12]. Given a reference style image Xs ∈ RH×W ×3 ,
+approach conditions LDMs on style and textual features ob-              the backbone ﬁrst creates a feature map F ∈ Rh×w×d ,
+tained from a style extractor and content encoder. To be able           where d is the feature dimension. A codebook embedding
+to synthesize handwriting images from an unseen style ref-              E = {ei }K  i=1 ∈ R
+                                                                                              K×D
+                                                                                                   , where K is the length of the code-
+erence, it is important that the style extraction module has            book, which stands for a collection of different style con-
+knowledge of the diverse style concepts in the handwriting              cepts and D is the codebook dimension, is used to map each
+domain and represents each style concept distinctively. We              feature in the feature maps to a speciﬁc discrete code a.k.a,
+utilize VQ technique with a pre-deﬁned codebook embed-                  visual token. A larger value of K could model ﬁner-grained
+ding to discretize the extracted style features into different          traits (e.g., subtle ligature variations), but risks overﬁtting to
+discrete visual tokens, followed by many works in discrete              noise or increasing memory demands, while a smaller value
+representation learning [25, 32, 41], helping our model to              might oversimplify styles, missing nuanced writer-speciﬁc
+learn the necessary information and ignoring noise infor-               characteristics. Let Fq = {fqi } ∈ Rh×w×d is the quantized
+mation more effectively. The codebook embedding is opti-                  1 Further details on the latent diffusion models will be provided in the
+
+mized using an LSAQ objective.                                          Appendix
+
+
+
+
+                                                                 4297
+                                                                                       ...
+
+
+                             Negative
+                                        ...
+                                                                                                                                                                                    Textual Content
+                    xN
+
+                                                               Style-Aware
+                             Target
+                                                            Quantization (SAQ)
+                                                                                                                                                         Content Encoder                  his
+                          Reference
+
+                                                     Gaussian Noise
+                                                                                                                                                Recovered
+                                                                                             KV         KV        KV         KV
+                                         E
+                                                                                             Q          Q         Q          Q
+
+                    Target
+
+                                                                                                                       Denoising Unet
+
+
+                a) Training pipeline
+
+                                                                                                                                                                                           his
+                                                            Codebook
+                                                           Embeddings
+                                                                                                                                                                                          Content
+                                                                                                                                                               SAQ       Gaussian Noise
+                                                                                                                                                                                          Encoder
+
+
+
+
+                   Reference Style
+                                                                         1    10   4               Concat
+                                          Backbone                      20     9   5                 &                        AttentionPool
+                                                                                                   Flatten
+                                                                                                                                                                x(T-1)
+
+                                                                                                                                                                                          D
+
+                b) Style-Aware Quantization                                                                                                              c) Inference pipeline
+
+
+
+
+Figure 2. Overall architecture of our method. a) The training pipeline, the model is optimized using objectives: Ldenoising , LSCE and
+LLatentP CE and LSAQ , b) Architecture of our SAQ module, with Inception-V3 backbone, codebook embedding and a Attention Pool
+module, c) Sampling pipeline of our method.
+
+feature maps, each vector fqi , where i ∈ [0, h × w] of Fq                                                   inspired by [35] to fuse the information from both feature
+is calculated by looking up the nearest neighbor of fi in the                                                maps. This module performs a self-attention operation on
+codebook E as                                                                                                F̂ producing two types of features: 1) Fglobal ∈ Rd as the
+                                                                                                             global representation of F̂ , used with LSCE to enhance
+                fqi = argminei ∈E fi − ei 2                                                (2)             writer discrimination; 2) Fseq ∈ RT ×d as the sequence
+                                                                                                             of fused style features after reﬁnement serving as context
+Similar to other previous methods [25, 32, 41], we optimize                                                  for the DM. This hybrid approach balances the abstraction
+codebook embedding E using VQ-loss Lvq and commit-                                                           of discrete tokens with the richness of continuous features,
+ment loss Lcmt to ensure the codebook learns meaningful                                                      making it robust to the variability in handwritten images.
+clusters of style features.                                                                                  The overall architecture of our SAQ is illustrated in Fig. 2b.
+                 LSAQ = Lvq + β × Lcmt                                                       (3)             3.4. Style Contrastive Enhancement
+                                                                          2                                  Given a training batch B with N samples, including N/2
+Where loss terms Lvq = sg (F ) − E2 , Lcmt =
+               2                                                                                             pairs of (reference, target) images from different writers.
+F − sg (E)2 , where sg stands for the stop gradient op-                                                    Let target (anchor) style feature as Ftar ∈ Rd with index
+erator, and β is the weight of commitment loss, we choose                                                    j and reference style feature as Fref ∈ Rd with index p,
+β = 0.25 similar to [41]. Nevertheless, we noticed that                                                      for each (reference, target). We have K = N − 2 negative
+directly using quantized feature map Fq and completely ig-                                                   samples, we call them D = B \ {j, p}, where Fd ∈ RKxd
+noring all information from F will lead to the ignoring of                                                   is the style feature of negative samples. Both Ftar , Fref ,
+some useful local details information, as the quantized fea-                                                 and Fd are the global style feature Fglobal returned by SAQ
+ture maps only capture general style concepts that should                                                    module. Our style contrastive enhancement (LSCE ) loss is
+not be missing when extracting from the reference images,                                                    written as follows:
+but the continuous features are also useful to be able to
+adapt to each speciﬁc unseen writer style. Therefore, we
+                                                                                                                                           −1 
+concatenate the continuous feature maps F with the quan-                                                      SCE (Ftar , Fref , Fd ) =
+                                                                                                                                           N
+                                                                                                                                                log
+                                                                                                                                                                       exp (sim (Ftar , Fref ) /τ )
+                                                                                                                                                                                  
+                                                                                                                                                    exp (sim (Ftar , Fref ) /τ ) + d∈D(t) exp (sim (Ftar , Fd ) /τ )
+                                                                                                                                                                                                                       (4)
+tized version Fq and ﬂatten the result into F̂ ∈ RT ×2d ,
+                                                                                                                                              t∈B
+
+
+
+where T = h × w and apply the Attention Pool module                                                             Where sim ((Ftar , Fref )/τ ) is the cosine similarity be-
+
+
+
+                                                                                                   4298
+tween reference and target images and τ a temperature                                                                         Similar to LSCE , we can write LLatentP CE in a bidi-
+hyper-parameter. More generally, we can swap the role of                                                                   rectional format by swapping roles of the anchor and posi-
+the reference and target as different views as discussed in                                                                tive samples. Therefore, LLatentP CE objective at multiple
+[40], where the reference is Anchor and the target is Posi-                                                                scales can be written as follows:
+tive sample. Therefore the overall LSCE is as follows:
+
+ LSCE = 12 SCE (Ftar , Fref , sg (Fd )) + 21 SCE (Fref , Ftar , sg (Fd ))                                   (5)                              S
+                                                                                                                                           1
+                                                                                                                            LLatentP CE = 2S                                   ˆs         1
+                                                                                                                                                s=1 LatentP CE (zp , ẑp , sg(z̄ p )) + 2S LatentP CE (ẑp , zp , sg(z̄p ))
+                                                                                                                                                                  s s                                      s s           s
+                                                                                                                                                                                                                                (7)
+Here sg indicates a stop gradient operation, which pre-                                                                    Here sg indicates a stop gradient operation similar to LSCE ,
+vented gradients from going through negatives as proposed                                                                  and S is the number of scale levels.
+from [3].
+                                                                                                                           4. Experiments
+3.5. Latent Patch Contrastive Enhancement                                                                                  4.1. Experiment Settings
+In HTG, producing realistic and ﬁne-grained detailed out-                                                                  4.1.1. Datasets
+puts is crucial. Traditional regression losses, such as stan-                                                              We evaluate our method on three datasets, including
+dard denoising loss in LDMs, help generate globally coher-                                                                 the standard IAM dataset [26], a real-world complex
+ent results but often struggle to capture ﬁne details, some-                                                               dataset as IMGUR5k [22], and a new IIIT-English-Word
+times resulting in blurry or oversmoothed outputs. Our                                                                     dataset [28]. IAM dataset consists of 62,857 English word
+proposed LLatentP CE is a complementary loss to the de-                                                                    images from 500 unique writers. Similar to the setting in
+noising loss, ensuring local consistency and enhancing per-                                                                GANWriting [21], we use data from 339 writers for the
+ceptual realism. Unlike HiGAN+ [11], which uses pixel-                                                                     training phase and the remaining 161 writers for evalua-
+level patching to enhance real/fake sample classiﬁcation,                                                                  tion. IMGUR5K dataset is a real-world multi-source do-
+our LLatentP CE operates in the latent space to directly op-                                                               main dataset provided with a large variety of handwritten
+timize the locality information of generated images.                                                                       styles, containing 135,375 words from 5305 writers. IIIT-
+                                                                                                                           English-Word dataset is a new dataset containing a large
+                   Ground-truth Latent                                                  Push
+                                                                                                                           and diverse set of handwritten words with more than 700000
+                                                   MLP
+
+                                                                                 Pull
+                                                                                                                           samples from 1,215 writers. Results on IIIT-English-Word
+                                                                                        Push                               are presented in the Appendix.
+                                                   MLP
+
+
+
+                   Generated Latent
+                                                                                                                           4.1.2. Evaluation Metrics
+                                                                                                                           To evaluate the visual quality of our proposed method and
+Figure 3. Visualization of our LLatentP CE objective in bidirec-                                                           compare it with other SOTA methods, we use the Fréchet
+tional format including two sub contrastive loss. First loss receives                                                      Inception Distance (FID) [14]. For style imitation quality,
+(anchor, positive, negatives), second loss receives (anchor, posi-                                                         we use two metrics: Handwriting Distance (HWD) [34] to
+tive, negative).                                                                                                           measure the perceptual distance of subtle geometric features
+    Given a ground-truth and a generated latent feature,                                                                   between the generated and real images using Euclidean dis-
+we extract yp , ŷp ∈ Rhpatch ×wpatch ×dpatch from the same                                                                tance, and writer classiﬁcation accuracy a.k.a AccW id , ob-
+spatial location (e.g. green & yellow in Fig. 3). Sim-                                                                     tained by testing a classiﬁer trained on real images with our
+ilarly, ȳp , ȳˆp correspond to other spatial patches in the                                                              generated samples. For readability, we follow the setup
+ground-truth and generated features (e.g. red & orange in                                                                  from [31] to assess handwritten text recognition perfor-
+Fig. 3). These patches are projected into feature embed-                                                                   mance via Word Error Rate (WER). Finally, these quantita-
+dings zp , ẑp ∈ RD , z̄p , z̄ˆp ∈ R(H−1)×D using a shallow                                                                tive results are supplemented by a user study on perceptual
+MLP network. Where D is channel dimension, H is the                                                                        quality and diversity, with full details provided in the Ap-
+total number of patches. The objective is to ensure that                                                                   pendix.
+patches from the same spatial location are closer in the em-                                                               4.1.3. Implementation Details
+bedding space, while patches from different locations are
+pushed farther apart. Additionally, we extract patches at                                                                  For all of our experiments, we train our model in only
+multiple scales by varying patch sizes to capture local in-                                                                one stage using PyTorch 1.12.1 for 800000 iterations using
+formation across different spatial resolutions. In summary,                                                                batch size of 64 for IAM dataset and 128 for IMGUR5K
+our LatentP CE at certain scale level s is written as follows:                                                            and IIIT-English-Word dataset. All images are resized to
+                                                                                                                           a ﬁxed height of 64 and keep the aspect ratio. We hy-
+                                                                                                                           pothesize that datasets with greater complexity—such as
+                                            H                        exp(sim(zps ,ẑps )/τ )                              noisier backgrounds and foreground variations—require a
+ LatentP CE (zps , ẑps , z̄ˆsp ) = − H1    p=1 log exp(sim(z s ,ẑ s )/τ )+Hs −1 exp(sim(z s ,z̄ˆs )/τ )
+                                                              p p             n=1             p p
+                                                                                                              (6)
+
+
+
+                                                                                                                    4299
+                                                                                           Method             Reference HWD ↓ FID ↓ WER ↓ AccW id ↑
+
+larger codebook size K to capture more diverse style con-                                HWT [2]                                 1.23      19.82         0.62       9.08
+                                                                                         VATr [33]                Few-shot       1.13      16.30         0.51       49.81
+cepts. Empirically, we thus set K = 1024 for IAM and                                 DiffusionPen [30]                           1.04      18.94         0.23       38.86
+K = 2048 for IMGUR5K/IIIT-English-Word, with detailed                                  HiGAN+ [11]                               0.89      13.90         0.56       55.20
+ablation studies validating this across datasets provided in                           HiGAN [10]
+                                                                                                                  One-shot
+                                                                                                                                 1.55      27.13         0.55       29.79
+the Appendix. Training process is conducted with AdamW                                 One-DM [4]                                1.05      15.97         0.36        4.5
+                                                                                          Ours                                   0.74      10.20         0.22       69.43
+optimizer [24], with β1 = 0.9, β2 = 0.999, and an initial
+learning rate of 10−4 on a single Nvidia V100-32GB GPU.                             Table 1. Comparison between SOTA methods on IAM test dataset.
+During training phase, we follow the idea of classiﬁer-free                         Bold values indicate best and Underline values indicate second-
+guidance (CFG) [15] to randomly drop conditional features                           best.
+with probability p = 0.2. At inference phase, as shown in
+Fig. 2c, we adopt CFG strategy with a guidance scale of 7.5                         results in seen style cases (IV-S and OOV-S). We also estab-
+using denoising diffusion implicit model (DDIM) [37] with                           lish a signiﬁcant lead over DiffusionPen in both HWD and
+50 sampling steps 2 .                                                               FID, despite using only a single reference image. For un-
+                                                                                    seen cases, our method outperforms the second-best (Diffu-
+4.1.4. Compared with Other SOTA                                                     sionPen) on HWD for both IV-U and OOV-U, and exceeds
+We compare our method against several SOTA handwrit-                                One-DM on FID for OOV-U by more than 3%. These re-
+ten text generation (HTG) methods. GAN-based compar-                                sults clearly demonstrate the effectiveness of our method,
+isons include HiGAN [10], HiGAN+ [11], HWT [2], and                                 especially the SAQ module (Sec. 3.3), in generalizing to
+VATr [33]. For diffusion model (DM)-based methods, we                               unseen writing styles.
+evaluate against the current SOTA One-DM [4] and Diffu-                             Beyond the IAM dataset, we also evaluated our method
+sionPen [30]. Among these, HiGAN, HiGAN+, and One-                                  on the more complex IMGUR5K dataset. As shown in
+DM are one-shot HTG methods, while HWT, VATr, and                                   Tab. 3, our approach achieves state-of-the-art results on
+DiffusionPen are few-shot 3 .                                                       the IMGUR5K test set, with an HWD score of 0.99,
+                                                                                    outperforming One-DM’s 1.22. This demonstrates our
+4.2. Compared with SOTA Methods                                                     method’s superior capability in replicating complex hand-
+4.2.1. Quantitative Comparison                                                      written styles using the SAQ module, compared to One-
+                                                                                    DM’s high-frequency encoder.
+Tab. 1 presents the quantitative results on the IAM test set.
+                                                                                                               IV-S              OOV-S              IV-U              OOV-U
+Our method achieves state-of-the-art performance across                                   Method           HWD ↓ FID ↓         HWD ↓ FID ↓       HWD ↓ FID ↓        HWD ↓ FID ↓
+both one-shot and few-shot approaches, with the best HWD                                  HWT [2]           2.30      135.51    2.30    146.16    2.35     138.39    2.36   148.75
+                                                                                          VATr [33]         2.50      132.87    2.51    140.56    2.58     137.34    2.60   144.02
+of 0.74 and FID of 10.20. This outperforms the second-best                            DiffusionPen [30]     1.14      91.20     1.16    97.65     1.52     112.87    1.65   122.52
+HiGAN+ (0.89 HWD, 13.90 FID). As a one-shot DM-based                                    HiGAN [10]          2.29      118.70    2.31    128.49    2.36     119.56    2.37   128.60
+                                                                                       HiGAN+ [11]          1.76      117.76    1.79    122.56    1.78     117.63    1.81   124.38
+method, ours also surpasses One-DM in both HWD and FID                                  One-DM [4]          1.95      104.04    1.99    107.81    1.94     117.74    1.99   121.94
+scores. For readability, we achieve a SOTA WER of 0.22,                              Ours (CONSTANT)        0.96       89.88    0.94     96.13    1.61     112.03    1.63   118.10
+
+marginally better than DiffusionPen’s 0.23 and signiﬁcantly
+                                                                                    Table 2. Evaluation in terms of FID and HWD scores on four sce-
+outperforming One-DM’s 0.36. These results demonstrate
+                                                                                    narios: IV-S (In-vocab, Seen style), OOV-S (Out-of-vocab, Seen
+the effectiveness of our LLatentP CE (Sec. 3.5). Further-                           style), IV-U (In-vocab, Unseen style), OOV-U (Out-of-vocab, Un-
+more, the proposed SAQ (Sec. 3.3) module enhances style                             seen style). Bold values indicate best and Underline values indi-
+quality, evidenced by a 69.43% writer classiﬁcation accu-                           cate second-best.
+racy.
+Furthermore, we also evaluate our approach in four differ-                                                                                       Method             FID ↓
+                                                                                           Method         HWD ↓     FID ↓
+ent scenarios, including IV-S (In-vocab, Seen style), OOV-S                                                                                     Baseline            16.73
+                                                                                        HiGAN+ [11]        1.35      20.04                 Baseline + Lcosine       21.06
+(Out-of-vocab, Seen style), IV-U (In-vocab, Unseen style),                              HiGAN [10]         1.55      17.58                Baseline + LP IP S        14.05
+                                                                                        One-DM [4]         1.22      18.94                Baseline + LP atchL2      15.10
+OOV-U (Out-of-vocab, Unseen style), where OOV-U is                                                                                       Baseline + LLatentP CE     14.01
+                                                                                            Ours           0.99      11.48
+considered the most difﬁcult case, similar to settings from
+[2, 21]. As shown in Tab. 2, our method demonstrates strong                                                                        Table 4.      Quatitative com-
+performance in terms of both FID and HWD scores. While                              Table 3. Quantitative results on               parisons between LLatentP CE
+DiffusionPen excels among GAN-based methods, particu-                               IMGUR5K test set.                              and other auxiliary objectives in
+larly in HWD, highlighting the strength of diffusion models                                                                        terms of FID.
+for style adaptation, our approach achieves state-of-the-art
+                                                                                    4.2.2. Qualitative Comparison
+   2 More details about our implementation and architecture are provided
+
+in the Appendix.
+                                                                                    Fig. 4 presents a qualitative comparison, showcasing our
+    3 We utilize pretrained weights for IAM where available; otherwise, we          method’s ability to generate new content with a style (slant,
+adapt provided source code to train models from scratch on other datasets.          stroke width, and background color) closely matching refer-
+
+
+
+                                                                             4300
+ence images. In contrast, HiGAN and HiGAN+ fail to cap-                  leveraging VGG-pretrained features, both rely on L2 dis-
+ture the slant variation. Although HWT and VATr utilize 15               tances to minimize patch discrepancies but fail to encourage
+times more reference images than our method, they strug-                 discriminative representations.
+gle with accurate character color and shape adaptation, and
+inconsistencies often arise from high intra-writer variability           4.4. Generalization to Other Languages
+in their references. While One-DM and DiffusionPen ex-                   To assess the adaptability and effectiveness of our pro-
+tract style better than other GAN-based methods, they fall               posed method, we extended our experiments beyond En-
+short in generating correct textual content and sufﬁcient lo-            glish to include languages with distinct writing systems.
+cal detail. Fig. 5 visually demonstrates the superiority in              We consider performing experiments on Chinese language
+mimicking style, including ink color and character shapes,               and Vietnamese language. For Chinese, we use CASIA
+on IMGUR5K dataset. We can also see that One-DM with                     database [46] containing 60 writers and 3755 Chinese char-
+only high-frequency information can generate reasonable                  acters for each writer. For Vietnamese, we construct a novel
+results, still can not learn the ink color information of the            dataset with a variety of styles and diverse backgrounds,
+style image effectively.                                                 named ViHTGen. The dataset consists of more than 50000
+4.3. Ablation Studies                                                    Vietnamese handwriting images collected from the univer-
+                                                                         sity’s exam 4 . We then compare our model against One-
+4.3.1. Effectiveness of Proposed Components                              DM [4] method. Tab. 6 shows that our method outperforms
+To validate our contributions, we perform a cumulative ab-               One-DM on both metrics with over 10% improvement on
+lation study, with results shown in Tab. 5. We start with                HWD scores, indicating that our method adapts to style
+a “Base” model, a standard conditional LDMs without our                  better than One-DM. From Fig. 6a, we observe that our
+proposed modules. As shown in the ﬁrst row, this base-                   method effectively adapts to complex styles, such as vary-
+line produces legible but blurry text with poor style ﬁdelity,           ing stroke density, while preserving the content of the char-
+achieving an FID of 16.73. While Base+SAQ dramati-                       acters. In contrast, One-DM tends to generate blurry details
+cally enhances visual quality, causing the FID to plum-                  and struggles to produce sufﬁcient strokes in its handwrit-
+met to 12.47. Next, Base+SAQ+LSCE helps improve                          ing. For Vietnamese scripts from Fig. 6b, our method can
+HWD score from 0.85 to 0.84, demonstrating that this loss                effectively handle complex backgrounds with difﬁcult char-
+successfully enforces a more discriminative style space.                 acter shapes and diverse colors, even for numeric charac-
+Finally, Base+SAQ+LSCE +LLatentP CE provides another                     ters. Meanwhile, One-DM fails to generate coherent results,
+major boost in local details, bringing FID down to an excel-             with the foreground tending to blend with the background,
+lent 10.20 and HWD to 0.74. The visual results prove that                indicating its failure to extract discriminative style concepts.
+all components work in synergy to achieve our ﬁnal SOTA                  More quantitative results with other methods and additional
+performance.                                                             qualitative results are presented in the Appendix.
+                                Style images   FID ↓   HWD ↓
+          Base SAQ LSCE LP CE
+                                                                                                     Chinese        Vietnamese
+                                              16.73    0.87                            Method     HWD ↓ FID ↓     HWD ↓ FID ↓
+                                             12.47    0.85                          One-DM [4]    0.48   22.97    1.08   22.53
+                                            12.55    0.84                             Our        0.37   22.74    0.83   18.81
+                                           10.20    0.74
+                                                                         Table 6. Quantitative comparisons with One-DM on Chinese and
+Table 5. Contribution of our SAQ, LSCE , and LLatentP CE to the          Vietnamese scripts in terms of FID and HWD.
+baseline model in terms of FID and HWD score.
+                                                                         4.5. Analysis
+4.3.2. Effectiveness of LLatentP CE                                      4.5.1. Style Extraction Analysis
+To validate our proposed objective, we compare it against                To better understand the behavior of our SAQ module, we
+alternative auxiliary objectives, including a global cosine              conduct an interpretability analysis between SAQ and a
+similarity loss (Lcosine ), LPIPS [48], and patch-wise L2                baseline Inception-V3 (Sec. 3.3) by visualizing the cross-
+(LP atchL2 ). As shown in Tab. 4, adding LLatentP CE                     attention scores between style features and generated pix-
+yields the lowest FID (14.01), outperforming the baseline                els, inspired by [39]. The resulting attention maps in Fig. 7
+(16.73) and other variants (e.g., Lcosine at 21.06, LPIPS                reveal a clear distinction: our SAQ module (A) produces
+at 14.05, LP atchL2 at 15.10), conﬁrming its superior lo-                sharp, localized maps where each feature corresponds to a
+cal detail sharpening. This stems from maximizing mutual                 speciﬁc character stroke. In contrast, the baseline’s atten-
+information across multi-scale patches, unlike the Lcosine ,             tion (B) is diffuse and unfocused, demonstrating that our
+which optimizes overall feature similarity without local
+constraints, or LPIPS and LP atchL2 , which, despite LPIPS                 4 More information about our ViHTGen is presented in the Appendix
+
+
+
+
+                                                                  4301
+               Style References
+
+
+                Textual content                                   We choose to go to the moon in this decade and do the other things             The only way of discovering the limits of the possible is to venture a little way past them into the impossible
+
+
+
+                                 HiGAN
+
+
+
+
+                                HiGAN+
+
+
+
+
+                                  VATr
+
+
+
+
+                                  HWT
+
+
+
+
+                              DifffusionPen
+
+
+
+
+                                One-DM
+
+
+
+
+              CONSTANT (Ours)
+
+
+
+
+    Figure 4. Comparison between ours with other methods using random style from IAM test set and two different textual contents.
+
+           Style Image                         Ours (CONSTANT)     One-DM                 HIGAN+                    HiGAN
+                                                                                                                                              learned structural style while correctly ignoring unseen con-
+                                                                                                                                              cepts like ink color. Second, we evaluated whether our
+                                                                                                                                              model, trained on a complex domain, could accurately gen-
+                                                                                                                                              erate clean styles by using an IMGUR5K-trained model
+                                                                                                                                              with clean IAM references. Fig. 9 shows it can accurately
+                                                                                                                                              generate clean styles without “hallucinating” the complex
+                                                                                                                                              styles from its training domain. Together, these scenarios
+                                                                                                                                              demonstrate our method’s strong ability to generalize across
+                                                                                                                                              domains with different characteristics.
+                                                                                                                                                                                                          Reference images
+
+Figure 5. Visualization of handwritten text generation on
+IMGUR5K test set.                                                                                                                                                                                          Generated images
+
+
+
+
+            One-DM
+
+
+
+      Ours (CONSTANT)                                                                                                                         Figure 8. Real images versus generated images using IAM-trained
+             Target                                                                                                                           model on IMGUR5K references.
+                                                     a) Chinese                                    b) Vietnamese
+
+
+
+
+Figure 6. Comparisons between CONSTANT and One-DM [4] on
+Chinese and Vietnamese scripts.
+                                                                                                                                                               (a) Example 1                                                            (b) Example 2
+SAQ module successfully learns to disentangle style into
+distinct, meaningful concepts.                                                                                                                Figure 9. Performing domain adaptation on IMGUR5K model us-
+                                                                                                                                              ing IAM reference images.
+                                              Feature 0               Feature 3                         Feature 5
+
+
+
+
+                A. SAQ                        Feature 8              Feature 14                       Feature 17                              5. Conclusion
+                                              Feature 0               Feature 3                         Feature 5
+                                                                                                                                              In this paper, we introduce CONSTANT, a novel diffusion-
+                B. Baseline                   Feature 8              Feature 14                       Feature 17
+                                                                                                                                              based method that signiﬁcantly improves one-shot HTG.
+                                                                                                                                              Our approach uses a Style-Aware Quantization (SAQ) mod-
+                                                                                                                                              ule, enhanced by a contrastive loss (LSCE ), to robustly
+Figure 7. Style cross-attention map visualization between our                                                                                 capture core style concepts from a single reference image
+CONSTANT and baseline model.                                                                                                                  through the innovative application of VQ. To address com-
+                                                                                                                                              mon issues like blurriness, we also incorporate a multi-
+4.5.2. Domain Generalization Analysis                                                                                                         scale patch-level (LLatentP CE ) objective that reﬁnes ﬁne-
+To investigate our model’s cross-domain generalization, we                                                                                    grained local details. Extensive experiments on multilingual
+conducted two challenging experiments. First, we evalu-                                                                                       datasets, including English, Chinese, and our new ViHTGen
+ated the robustness to out-of-domain features by testing an                                                                                   dataset, conﬁrm our method’s superior performance across
+IAM-trained model with style references from IMGUR5K.                                                                                         visual quality, style ﬁdelity, readability, and cross-domain
+As shown in Fig. 8, the model successfully preserves the                                                                                      generalization.
+
+
+
+                                                                                                                                       4302
+Acknowledgments                                                               [13] Haibin He, Xinyuan Chen, Chaoyue Wang, Juhua Liu, Bo
+                                                                                   Du, Dacheng Tao, and Qiao Yu. Diff-font: Diffusion model
+We acknowledge Ho Chi Minh City University of Tech-                                for robust one-shot font generation. International Journal of
+nology (HCMUT), VNU-HCM for supporting this study.                                 Computer Vision, 132(11):5372–5386, 2024. 2
+                                                                              [14] Martin Heusel, Hubert Ramsauer, Thomas Unterthiner,
+                                                                                   Bernhard Nessler, and Sepp Hochreiter. Gans trained by a
+References                                                                         two time-scale update rule converge to a local nash equilib-
+ [1] Alex Andonian, Taesung Park, Bryan Russell, Phillip Isola,                    rium. Advances in neural information processing systems,
+     Jun-Yan Zhu, and Richard Zhang. Contrastive feature loss                      30, 2017. 5
+     for image prediction. In Proceedings of the IEEE/CVF inter-              [15] Jonathan Ho and Tim Salimans. Classiﬁer-free diffusion
+     national conference on computer vision, pages 1934–1943,                      guidance. arXiv preprint arXiv:2207.12598, 2022. 6
+     2021. 3                                                                  [16] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising dif-
+ [2] Ankan Kumar Bhunia, Salman Khan, Hisham Cholakkal,                            fusion probabilistic models. In Advances in Neural Infor-
+     Rao Muhammad Anwer, Fahad Shahbaz Khan, and Mubarak                           mation Processing Systems, pages 6840–6851. Curran Asso-
+     Shah. Handwriting transformers. In Proceedings of the                         ciates, Inc., 2020. 2, 3
+     IEEE/CVF International Conference on Computer Vision                     [17] Dong-Jin Hong, Won-Du Chang, and Eui-Young Cha. Hand-
+     (ICCV), pages 1086–1094, 2021. 1, 2, 6                                        written signature generation using denoising diffusion prob-
+ [3] Xinlei Chen and Kaiming He. Exploring simple siamese rep-                     abilistic models with auxiliary classiﬁcation processes. Ap-
+     resentation learning. In Proceedings of the IEEE/CVF con-                     plied Sciences, 14(22):10233, 2024. 1
+     ference on computer vision and pattern recognition, pages                [18] Kyle Hsu, William Dorrell, James Whittington, Jiajun Wu,
+     15750–15758, 2021. 3, 5                                                       and Chelsea Finn. Disentanglement via latent quantization.
+ [4] Gang Dai, Yifan Zhang, Quhui Ke, Qiangya Guo, and                             Advances in Neural Information Processing Systems, 36:
+     Shuangping Huang. One-dm: One-shot diffusion mimicker                         45463–45488, 2023. 3
+     for handwritten text generation. In European Conference on               [19] R Reeve Ingle, Yasuhisa Fujii, Thomas Deselaers, Jonathan
+     Computer Vision, pages 410–427. Springer, 2025. 1, 2, 6, 7,                   Baccash, and Ashok C Popat. A scalable handwritten text
+     8                                                                             recognition system. In 2019 International conference on
+ [5] Ugur Demir and Gozde Unal. Patch-based image inpaint-                         document analysis and recognition (ICDAR), pages 17–24.
+     ing with generative adversarial networks. arXiv preprint                      IEEE, 2019. 1
+     arXiv:1803.07422, 2018. 2                                                [20] Lei Kang, Pau Riba, Yaxing Wang, Marçal Rusiñol, Ali-
+ [6] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li,                        cia Fornés, and Mauricio Villegas. Ganwriting: Content-
+     and Li Fei-Fei. Imagenet: A large-scale hierarchical image                    conditioned generation of styled handwritten word images.
+     database. In 2009 IEEE conference on computer vision and                      In Computer Vision – ECCV 2020, pages 273–289, Cham,
+     pattern recognition, pages 248–255. Ieee, 2009. 3                             2020. Springer International Publishing. 1, 2
+ [7] Prafulla Dhariwal and Alexander Nichol. Diffusion models                 [21] Lei Kang, Pau Riba, Yaxing Wang, Marçal Rusinol, Ali-
+     beat gans on image synthesis. Advances in neural informa-                     cia Fornés, and Mauricio Villegas. Ganwriting: content-
+     tion processing systems, 34:8780–8794, 2021. 2, 3                             conditioned generation of styled handwritten word images.
+ [8] Sharon Fogel, Hadar Averbuch-Elor, Sarel Cohen, Shai Ma-                      In Computer Vision–ECCV 2020: 16th European Confer-
+     zor, and Roee Litman. Scrabblegan: Semi-supervised vary-                      ence, Glasgow, UK, August 23–28, 2020, Proceedings, Part
+     ing length handwritten text generation. In Proceedings of                     XXIII 16, pages 273–289. Springer, 2020. 5, 6
+     the IEEE/CVF conference on computer vision and pattern                   [22] Praveen Krishnan, Rama Kovvuri, Guan Pang, Boris Vas-
+     recognition, pages 4324–4333, 2020. 1, 2                                      silev, and Tal Hassner. Textstylebrush: Transfer of text aes-
+ [9] David Friede, Christian Reimers, Heiner Stuckenschmidt,                       thetics from a single example, 2021. 5
+     and Mathias Niepert. Learning disentangled discrete repre-               [23] Xiaoming Li, Wangmeng Zuo, and Chen Change Loy.
+     sentations. In Joint European Conference on Machine Learn-                    Learning generative structure prior for blind text image
+     ing and Knowledge Discovery in Databases, pages 593–609.                      super-resolution. In Proceedings of the IEEE/CVF Confer-
+     Springer, 2023. 3                                                             ence on Computer Vision and Pattern Recognition, pages
+[10] Ji Gan and Weiqiang Wang. Higan: Handwriting imita-                           10103–10113, 2023. 3
+     tion conditioned on arbitrary-length texts and disentangled              [24] I Loshchilov. Decoupled weight decay regularization. arXiv
+     styles. Proceedings of the AAAI Conference on Artiﬁcial In-                   preprint arXiv:1711.05101, 2017. 6
+     telligence, 35(9):7484–7492, 2021. 1, 2, 6                               [25] Chengzhi Mao, Lu Jiang, Mostafa Dehghani, Carl Vondrick,
+[11] Ji Gan, Weiqiang Wang, Jiaxu Leng, and Xinbo Gao. Hi-                         Rahul Sukthankar, and Irfan Essa. Discrete representations
+     gan+: Handwriting imitation gan with disentangled repre-                      strengthen vision transformer robustness. arXiv preprint
+     sentations. ACM Trans. Graph., 42(1), 2022. 1, 2, 5, 6                        arXiv:2111.10493, 2021. 3, 4
+[12] Golnaz Ghiasi, Honglak Lee, Manjunath Kudlur, Vincent                    [26] U-V Marti and Horst Bunke. The iam-database: an english
+     Dumoulin, and Jonathon Shlens. Exploring the structure of a                   sentence database for ofﬂine handwriting recognition. Inter-
+     real-time, arbitrary neural artistic stylization network. arXiv               national journal on document analysis and recognition, 5:
+     preprint arXiv:1705.06830, 2017. 3                                            39–46, 2002. 5
+
+
+
+
+                                                                       4303
+[27] Alexander Mattick, Martin Mayr, Mathias Seuret, Andreas                      and Ferhan Ture. What the daam: Interpreting stable diffu-
+     Maier, and Vincent Christlein. Smartpatch: Improving hand-                   sion using cross attention. arXiv preprint arXiv:2210.04885,
+     written word imitation with patch discriminators. In Docu-                   2022. 7
+     ment Analysis and Recognition – ICDAR 2021, pages 268–                  [40] Yonglong Tian, Dilip Krishnan, and Phillip Isola. Con-
+     283, Cham, 2021. Springer International Publishing. 2                        trastive multiview coding. In Computer Vision–ECCV 2020:
+[28] Ajoy Mondal, Krishna Tulsyan, and CV Jawahar. Bridging                       16th European Conference, Glasgow, UK, August 23–28,
+     the gap in resource for ofﬂine english handwritten text recog-               2020, Proceedings, Part XI 16, pages 776–794. Springer,
+     nition. In International Conference on Document Analysis                     2020. 5
+     and Recognition, pages 413–428. Springer, 2024. 5                       [41] Aaron Van Den Oord, Oriol Vinyals, et al. Neural discrete
+[29] Konstantina Nikolaidou, George Retsinas, Vincent                             representation learning. Advances in neural information pro-
+     Christlein, Mathias Seuret, Giorgos Sﬁkas, Elisa Barney                      cessing systems, 30, 2017. 3, 4
+     Smith, Hamam Mokayed, and Marcus Liwicki. Wordstylist:                  [42] Bram Vanherle, Vittorio Pippi, Silvia Cascianelli, Nick
+     styled verbatim handwritten text generation with latent                      Michiels, Frank Van Reeth, and Rita Cucchiara. Vatr++:
+     diffusion models. In International Conference on Document                    Choose your words wisely for handwritten text generation.
+     Analysis and Recognition, pages 384–401. Springer, 2023. 2                   IEEE Transactions on Pattern Analysis and Machine Intelli-
+[30] Konstantina Nikolaidou, George Retsinas, Giorgos Sﬁkas,                      gence, 2024. 2
+     and Marcus Liwicki. Diffusionpen: Towards controlling                   [43] A Vaswani. Attention is all you need. Advances in Neural
+     the style of handwritten text generation. arXiv preprint                     Information Processing Systems, 2017. 2, 3
+     arXiv:2409.06065, 2024. 2, 6                                            [44] Xin Wang, Hong Chen, Si’ao Tang, Zihao Wu, and Wenwu
+[31] Konstantina Nikolaidou, George Retsinas, Giorgos                             Zhu. Disentangled representation learning. IEEE Transac-
+     Sﬁkas, and Marcus Liwicki.            Rethinking htg evalua-                 tions on Pattern Analysis and Machine Intelligence, 2024. 3
+     tion: Bridging generation and recognition. arXiv preprint               [45] Zhenhua Yang, Dezhi Peng, Yuxin Kong, Yuyi Zhang, Cong
+     arXiv:2409.02683, 2024. 5                                                    Yao, and Lianwen Jin. Fontdiffuser: One-shot font genera-
+[32] Zhiliang Peng, Li Dong, Hangbo Bao, Qixiang Ye, and Furu                     tion via denoising diffusion with multi-scale content aggre-
+     Wei. Beit v2: Masked image modeling with vector-quantized                    gation and style contrastive learning. In Proceedings of the
+     visual tokenizers. arXiv preprint arXiv:2208.06366, 2022. 3,                 AAAI conference on artiﬁcial intelligence, pages 6603–6611,
+     4                                                                            2024. 2
+[33] Vittorio Pippi, Silvia Cascianelli, and Rita Cucchiara. Hand-           [46] Fei Yin, Qiu-Feng Wang, Xu-Yao Zhang, and Cheng-Lin
+     written text generation from visual archetypes. In Proceed-                  Liu. Icdar 2013 chinese handwriting recognition competi-
+     ings of the IEEE/CVF Conference on Computer Vision and                       tion. In 2013 12th international conference on document
+     Pattern Recognition (CVPR), pages 22458–22467, 2023. 1,                      analysis and recognition, pages 1464–1470. IEEE, 2013. 7
+     2, 6                                                                    [47] Jan Zdenek and Hideki Nakayama. Jokergan: Memory-
+[34] Vittorio Pippi, Fabio Quattrini, Silvia Cascianelli, and Rita                efﬁcient model for handwritten text generation with text line
+     Cucchiara. Hwd: A novel evaluation score for styled hand-                    awareness. In Proceedings of the 29th ACM International
+     written text generation. arXiv preprint arXiv:2310.20316,                    Conference on Multimedia, page 5655–5663, New York, NY,
+     2023. 5                                                                      USA, 2021. Association for Computing Machinery. 2
+[35] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya                      [48] Richard Zhang, Phillip Isola, Alexei A Efros, Eli Shecht-
+     Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,                        man, and Oliver Wang. The unreasonable effectiveness of
+     Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning                   deep features as a perceptual metric. In Proceedings of the
+     transferable visual models from natural language supervi-                    IEEE conference on computer vision and pattern recogni-
+     sion. In International conference on machine learning, pages                 tion, pages 586–595, 2018. 7
+     8748–8763. PMLR, 2021. 4                                                [49] Yuanzhi Zhu, Zhaohai Li, Tianwei Wang, Mengchao He, and
+[36] Robin Rombach, Andreas Blattmann, Dominik Lorenz,                            Cong Yao. Conditional text image generation with diffu-
+     Patrick Esser, and Björn Ommer. High-resolution image                       sion models. In Proceedings of the IEEE/CVF Conference
+     synthesis with latent diffusion models. In Proceedings of                    on Computer Vision and Pattern Recognition (CVPR), pages
+     the IEEE/CVF conference on computer vision and pattern                       14235–14245, 2023. 2
+     recognition, pages 10684–10695, 2022. 2, 3
+[37] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denois-
+     ing diffusion implicit models. In International Conference
+     on Learning Representations, 2021. 6
+[38] Christian Szegedy, Vincent Vanhoucke, Sergey Ioffe, Jon
+     Shlens, and Zbigniew Wojna. Rethinking the inception archi-
+     tecture for computer vision. In Proceedings of the IEEE con-
+     ference on computer vision and pattern recognition, pages
+     2818–2826, 2016. 3
+[39] Raphael Tang, Linqing Liu, Akshat Pandey, Zhiying Jiang,
+     Gefei Yang, Karun Kumar, Pontus Stenetorp, Jimmy Lin,
+
+
+
+
+                                                                      4304
+

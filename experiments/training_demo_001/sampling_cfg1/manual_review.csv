@@ -1,0 +1,10 @@
+character,style_index,file,content_correct,stroke_issue,style_similarity,notes
+潮,0,outputs/U6F6E_style0_seed123.png,,,,
+潮,1,outputs/U6F6E_style1_seed123.png,,,,
+潮,2,outputs/U6F6E_style2_seed123.png,,,,
+舶,0,outputs/U8236_style0_seed124.png,,,,
+舶,1,outputs/U8236_style1_seed124.png,,,,
+舶,2,outputs/U8236_style2_seed124.png,,,,
+镀,0,outputs/U9540_style0_seed125.png,,,,
+镀,1,outputs/U9540_style1_seed125.png,,,,
+镀,2,outputs/U9540_style2_seed125.png,,,,

@@ -1,0 +1,1059 @@
+                                        HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster
+                                        Speed, and Higher Resolution
+                                        HUA LI, Wangxuan Institute of Computer Technology, Peking University, China
+                                        ZHOUHUI LIAN∗† , Wangxuan Institute of Computer Technology, Peking University, China
+
+
+                                                                                                计算机图形学会议
+                                                                                                计算机图形学会议
+
+
+
+
+arXiv:2410.06488v1 [cs.CV] 9 Oct 2024
+                                             Vector glyph               1024x1024 image                                                                                          1024x1024 image                Vector glyph
+
+                                                       (a) High-quality vector font synthesis/completion. Vector glyphs obtained by vectorizing our synthesized 1024x1024 glyph images are colored in red.
+
+
+
+
+                                           算机 澹泊明志……                                      ……
+                                                                                                                                                           算机 高瞻远瞩……                                 ……
+
+
+
+                                           学会 宁静致远  Input
+                                                                Infer
+
+                                                                                    Synthesis results
+                                                                                                                                                           学会 天道酬勤Input
+                                                                                                                                                                               Infer
+
+                                                                                                                                                                                                Synthesis results
+                                                    (b) Few-shot personalized font generation                             (c) Performance comparison                      (d) Artistic glyph image synthesis
+
+
+                                        Fig. 1. Our proposed HFH-Font aims to handle the task of few-shot Chinese font synthesis with higher quality, faster speed, and higher resolution. (a) Taking
+                                        a subset of characters in the desired style as inputs, our method outputs high-fidelity, high-resolution glyph images of the remaining characters, which can be
+                                        vectorized into high-quality vector fonts. Applications to (b) few-shot personalized font generation and (d) artistic glyph image synthesis can also be fulfilled
+                                        with visually pleasing synthesis results. (c) The diffusion-based generation process is further accelerated to 1-step inference, surpassing current state-of-the-art
+                                        diffusion model-based font synthesis methods in both generation quality and efficiency. Please zoom in for better inspection.
+
+                                        The challenge of automatically synthesizing high-quality vector fonts, par-                      component-aware conditioning to learn different levels of style information
+                                        ticularly for writing systems (e.g., Chinese) consisting of huge amounts of                      adaptable to varying input reference sizes. We also design a distillation
+                                        complex glyphs, remains unsolved. Existing font synthesis techniques fall                        module based on Score Distillation Sampling for 1-step fast inference, and a
+                                        into two categories: 1) methods that directly generate vector glyphs, and                        style-guided super-resolution module to refine and upscale low-resolution
+                                        2) methods that initially synthesize glyph images and then vectorize them.                       synthesis results. Extensive experiments, including a user study with profes-
+                                        However, the first category often fails to construct complete and correct                        sional font designers, have been conducted to demonstrate that our method
+                                        shapes for complex glyphs, while the latter struggles to efficiently synthesize                  significantly outperforms existing font synthesis approaches. Experimental
+                                        high-resolution (i.e., 1024 × 1024 or higher) glyph images while preserving                      results show that our method produces high-fidelity, high-resolution raster
+                                        local details. In this paper, we introduce HFH-Font, a few-shot font synthe-                     images which can be vectorized into high-quality vector fonts. Using our
+                                        sis method capable of efficiently generating high-resolution glyph images                        method, for the first time, large-scale Chinese vector fonts of a quality com-
+                                        that can be converted into high-quality vector glyphs. More specifically,                        parable to those manually created by professional font designers can be
+                                        our method employs a diffusion model-based generative framework with                             automatically generated.
+                                        ∗ Also with State Key Laboratory of General Artificial Intelligence, Peking University,          CCS Concepts: • Computing methodologies → Image representations;
+                                        Beijing, China.                                                                                  Shape modeling.
+                                        † Corresponding author
+                                                                                                                                         Additional Key Words and Phrases: Image synthesis, font generation, style
+                                        Authors’ addresses: Hua Li, Wangxuan Institute of Computer Technology, Peking                    transfer, deep generative models, diffusion models, deep learning
+                                        University, Beijing, China, lhhh@pku.edu.cn; Zhouhui Lian, Wangxuan Institute of
+                                        Computer Technology, Peking University, Beijing, China, lianzhouhui@pku.edu.cn.                  ACM Reference Format:
+                                                                                                                                         Hua Li and Zhouhui Lian. 2024. HFH-Font: Few-shot Chinese Font Synthesis
+                                        Permission to make digital or hard copies of all or part of this work for personal or
+                                                                                                                                         with Higher Quality, Faster Speed, and Higher Resolution. ACM Trans. Graph.
+                                        classroom use is granted without fee provided that copies are not made or distributed
+                                        for profit or commercial advantage and that copies bear this notice and the full citation        43, 6, Article 176 (December 2024), 16 pages. https://doi.org/10.1145/3687994
+                                        on the first page. Copyrights for components of this work owned by others than the
+                                        author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or
+                                        republish, to post on servers or to redistribute to lists, requires prior specific permission    1    INTRODUCTION
+                                        and/or a fee. Request permissions from permissions@acm.org.                                      Font synthesis is the task of automatically generating an entire font
+                                        © 2024 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+                                        0730-0301/2024/12-ART176 $15.00                                                                  library using only limited glyph examples (see Fig. 1). Automatic
+                                        https://doi.org/10.1145/3687994                                                                  font generation alleviates the burden of extensive, time-consuming
+
+                                                                                                                                             ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+176:2   • Hua Li and Zhouhui Lian
+
+
+manual design, and therefore has great application potential and has               generation as well as generation in high resolution (e.g., 1024 ×
+received increasing attention in recent years. Especially for glyph-               1024). For glyph-rich systems like Chinese, which contains tens of
+rich writing systems such as Chinese, Japanese, or Korean, which                   thousands of characters (eg. 6,763 for the GB2312 standard, 87,887
+contain tens of thousands of characters, a fast and effective few-shot             for the GB18030-2022 standard), extremely few-shot generation is
+font generation method not only speeds up the design of high-                      often ill-posed since hundreds of input references are usually re-
+quality commercial font products, but also allows for applications                 quired to cover all possible components. On the other hand, it is
+in personalized handwriting generation, scene text image editing,                  also desired for the model to learn a global representation and make
+data augmentation for optical character recognition (OCR), etc.                    assumptions of the missing knowledge when limited references are
+   Existing font synthesis methods generally fall into two categories:             available in real-world scenarios. Therefore, to fully exploit the in-
+directly targeting font generation in the vector modality [Thamizha-               formation of sufficient amount of references (eg., hundreds), which
+rasan et al. 2023; Wang and Lian 2021; Wang et al. 2023b], or gener-               most extremely few-shot learning methods do not support, moti-
+ating raster images before vectorizing them into vector fonts. This                vated by FsFont [Tang et al. 2022], we leverage an attention-based
+paper focuses on the investigation of the second category, i.e., we                conditioning module to enable reuse of component-level style infor-
+aim to develop a system that takes glyph images of a subset of                     mation, which can learn to effectively transfer diverse and complex
+characters in the desired style as inputs and produces glyph im-                   font styles to target glyphs when combined with the strong genera-
+ages of the rest of the characters as outputs; using the synthesized               tive capability of latent diffusion models. Additionally, to allow for
+high-resolution glyph images, high-quality vector fonts can be ob-                 smaller input reference sizes (eg., less than 10) in real-world scenar-
+tained by employing well-studied image vectorization techniques.                   ios, we introduce a reference selection strategy to equip the model
+Compared to methods that directly target vector font synthesis,                    with the ability to extract both global and local style information.
+although dealing with high-resolution images involves high compu-                  To tackle the problem of slow inference in the diffusion process, we
+tational complexity and manual interventions are still needed in the               incorporate the Score Distillation Sampling technique [Poole et al.
+vectorization process for existing approaches, the image modality                  2022] in the text-to-3D generation literature into our framework.
+that consists of structural information is much easier to process                  In this manner, we achieve efficient one-step generation with little
+by many state-of-the-art generative models. On the other hand,                     loss of quality. To further enable generation in higher resolution, we
+font generation methods that directly process the vector modality                  design a super-resolution process where the loss of detailed styles in
+are currently only capable of dealing with simple shapes, limiting                 the lower-resolution regime can be recovered during upscaling, and
+their application in font generation for writing systems containing                the gap between the image and vector domains can be mitigated.
+glyphs with high topological complexity, e.g., Chinese. As shown in                   Closely related to our work are Diff-Font [He et al. 2022] and
+Fig. 1(a), we can see that, once high-resolution (i.e., 1024 x 1024 or             FontDiffuser [Yang et al. 2023b], which apply pixel-space diffusion
+higher) glyph images with well-preserved local details can be syn-                 models [Dhariwal and Nichol 2021; Ho et al. 2020] to the glyph image
+thesized, it is possible to generate high-quality vector glyphs which              synthesizing task and utilize either stroke vectors or multi-scale
+are indistinguishable from those manually produced by professional                 content features to better preserve glyph structures. Our approach
+font designers.                                                                    differs in the following aspects: 1) we use a latent-space diffusion
+   Despite recent advances, few-shot font generation remains an                    model instead of a pixel-space diffusion model, markedly reducing
+unsolved and challenging task due to the complexity of charac-                     both training and inference costs; 2) we conduct component-level
+ter structures and the creative, diverse nature of font design. Most               style extraction and transformation, obtaining substantially superior
+previous approaches are built upon Generative Adversarial Net-                     style accuracy and consistency; 3) we utilize diffusion distillation
+works (GANs) [Goodfellow et al. 2020] and adopt the style-content                  and super-resolution techniques for high-resolution, one-step image
+disentanglement scheme in EMD [Zhang et al. 2018] to train an                      generation. Our proposed method significantly improves both the
+image-to-image translation network in an adversarial manner. How-                  generative quality and practical feasibility, yielding superior and
+ever, GANs are known to be hard to train, difficult to scale, suffer               impressive results.
+from mode collapse, and lack diversity, limiting their potential in                   To sum up, major contributions of this paper are as follows:
+generation quality. Moreover, a deterministic generative network
+is unable to generate multiple results given specific inputs, while                    • We propose HFH-Font, a diffusion model-based font genera-
+an ideal system gives users control over the generation process and                      tion framework that supports high-quality font generation
+freedom to choose from diverse generated results. On the other                           in as few as one step, as well as generation in high resolution
+hand, diffusion models have been shown to produce better results                         (e.g., 1024 × 1024) which facilitates further vectorization into
+compared to previously state-of-the-art GAN-based methods [Dhari-                        high-quality vector fonts.
+wal and Nichol 2021], can be easily scaled to larger datasets, and                     • We introduce a component-aware conditioning module and
+are able to generate diverse results given specific conditions. How-                     a reference selection strategy that enable the model to deal
+ever, the most prominent drawback of diffusion models is their                           with different levels of style information and adapt to different
+iterative inference process that prevents the practical use of such                      reference sizes, allowing for trade-off between style fidelity
+models. Moreover, properly integrating prior knowledge of glyphs                         and input reference size.
+into diffusion models also requires delicate and specific designs.                     • We conduct extensive experiments, including a user study
+   In this paper, we propose HFH-Font, a diffusion model-based font                      with professional font designers, to demonstrate the supe-
+synthesis method that supports high-quality one-step few-shot font                       riority of our method to the state of the art. According to
+
+ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+                                                    HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution •       176:3
+
+
+      both the quantitative evaluation and user studies, our method            2018] uses separate style and content encoders to achieve style-
+      outperforms existing approaches by a considerable margin.                content disentanglement, enabling generalization to unseen fonts.
+      In addition, we showcase our model’s ability to transfer both            Subsequent works employ this disentanglement scheme with re-
+      shape and texture styles through application to artistic glyph           finements, e.g., ZiGAN [Wen et al. 2021] maps style features to the
+      image synthesis.                                                         Hilbert space and aligns the feature distributions, DG-Font [Xie
+                                                                               et al. 2021] introduces deformation convolution to the generator,
+2 RELATED WORK                                                                 CF-Font [Wang et al. 2023c] proposes a content fusion module to
+                                                                               narrow the gap between the reference and target fonts, etc.
+2.1 Font Generation                                                               For the generation of highly structured CJK characters specifi-
+2.1.1 Font Generation in Vector Modality. Significant work has been            cally, notable work utilizes prior domain knowledge such as stroke
+done in generation of vector fonts. Early work such as [Campbell               order [Zeng et al. 2021] or stroke/component decomposition [Jiang
+and Kautz 2014] proposes to learn a font manifold in which new                 et al. 2019; Tang et al. 2022] to guide the generation process at stroke-
+fonts can be synthesized. Recent methods employ deep generative                level or component-level. Stroke-GAN [Zeng et al. 2021] conditions
+models targeting sequential data for the task of vector font gener-            the discriminator on stroke count information to reduce stroke-level
+ation. SketchRNN [Ha and Eck 2017] applies bi-directional RNNs                 errors. DM-Font [Cha et al. 2020] is the first to utilize the compo-
+to generate stroke-based drawings. FontRNN [Tang et al. 2019]                  sitionality of a script by encoding component-wise styles into the
+utilizes RNNs to synthesize the writing trajectories of Chinese char-          dynamic memory. MX-Font [Park et al. 2021b] employs a multi-
+acters. DeepSVG [Carlier et al. 2020] proposes a transformer-based             head design and each head is specialized for different local concepts.
+VAE based on hierarchical representation of SVG for generation of              CG-GAN [Kong et al. 2022] trains a component predictor to better su-
+vector icons. DeepVecFont [Wang and Lian 2021] and DeepVecFont-                pervise the generator during adversarial training. FsFont [Tang et al.
+v2 [Wang et al. 2023b] adopt techniques in image synthesis and                 2022] constructs a character-reference mapping and utilizes cross-
+sequence modeling to fully exploit dual modality information. Du-              attention to guide the network to focus on relevant components
+alVector [Liu et al. 2023] proposes a dual-part font representation            in the reference images with each source character. VQ-Font [Pan
+for unsupervised shape modeling, followed by a contour refinement              et al. 2023] uses a quantization-based variational autoencoder to
+procedure for better details. VecFontSDF [Xia et al. 2023] utilizes            automatically extract components and an attention-based module
+the SDF representation to reconstruct and synthesize high-quality              to transfer local styles.
+vector fonts. VecFusion [Thamizharasan et al. 2023] uses an image
+as well as vector diffusion model in a cascaded manner for the gener-
+ation of complex shapes and diverse styles. Due to the limited ability         2.2      Diffusion Models
+of dealing with long and complex sequences, these methods are only             Diffusion-based generative models [Ho et al. 2020; Sohl-Dickstein
+capable of handling simple shapes like English characters or simple            et al. 2015] are a family of generative models that have recently
+Chinese characters with fewer strokes and shorter drawing paths.               achieved unparalleled performance in many image synthesis tasks
+The generated styles also lack diversity. Although impressive results          [Podell et al. 2023] as well as tasks targeting other modalities such
+for English font synthesis have been shown in [Thamizharasan et al.            as video [Blattmann et al. 2023], audio [Kong et al. 2020], text [Li
+2023], it can not be directly applied to handle Chinese characters             et al. 2022], etc. Latent diffusion models (LDMs) [Rombach et al.
+that contain longer sequences and more topological complexity. To              2022] particularly have been widely used in a variety of conditional
+address this problem, EasyFont [Lian et al. 2018] utilizes shallow             generation tasks including image editing [Brooks et al. 2023], text-to-
+neural networks to learn and recover a user’s overall handwriting              image generation [Podell et al. 2023], etc, the reduced computational
+styles and detailed handwriting behaviors, and thus automatically              cost of which makes it possible for diffusion models to be applied
+generate large-scale Chinese handwriting fonts in the user’s per-              in real-life applications. Cascaded diffusion models [Ho et al. 2022]
+sonal style; CVFont [Lian and Gao 2022] uses a layout prediction               are proposed to successively upsample generated images to higher
+module to learn the layout of corresponding components of tar-                 resolutions through consecutive super-resolution models and has
+get glyphs. But they do not generalize to unseen fonts, still require          been successfully used in multiple tasks targeting high-resolution
+considerable number of references, and cannot handle diverse styles.           image generation [Saharia et al. 2022].
+                                                                                  Generation of text within images has been a major challenge for
+2.1.2 Font Generation in Image Modality. As mentioned above, al-               generative models. Efforts have been made in scene text generation
+though glyph image is a much less efficient and lossy representation           and editing [Ma et al. 2023; Tuo et al. 2023; Yang et al. 2023a] and
+of fonts and requires additional vectorizing to obtain vector fonts,           handwriting generation [Gui et al. 2023; Luhman and Luhman 2020]
+it possesses desirable qualities such as easy management, ability              that attempt to utilize the strong generative capability of diffusion
+to handle complex glyphs and styles, and better generation qual-               models for text generation within images. We focus on gray-scale
+ity thanks to rapid growth in the field of image generation. Font              glyph image generation where more complex font styles and finer
+generation in the image modality has seen great advances in the                character details are dealt with, laying the foundation for further
+deep learning era. Early approaches such as zi2zi [Tian. 2017] and             applications. Recently, Diff-Font [He et al. 2022], FontDiffuser [Yang
+DCFont [Jiang et al. 2017] that treat the task as an image translation         et al. 2023b], and QT-Font [Liu and Lian 2024] have attempted to
+problem are built upon the pix2pix [Isola et al. 2017] framework               apply diffusion models to this task and have achieved impressive
+and require per-font fine-tuning at test time. EMD [Zhang et al.               results. Although they are able to generate sharp results thanks
+
+                                                                                     ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+176:4   • Hua Li and Zhouhui Lian
+
+
+to the generative ability of diffusion models, the pre-trained style               for distilling the trained model into a one-step generation model, and
+features or style contrastive refinement strategy they use often fail              a super-resolution model that is used to generate high-resolution
+when facing unseen, complex font styles and the pixel-space multi-                 glyphs in a cascaded manner. The three parts will be illustrated in
+step diffusion they employ limits their methods’ practical use and                 detail in Section 3.1, Section 3.2, and Section 3.3, respectively.
+scalability to higher resolution. In contrast, we provide support for
+one-step as well as high-resolution generation and incorporate prior               3.1    Conditional LDM with Component-aware
+knowledge on component decomposition into our system which                                Conditioning
+significantly benefits the learning and transferring of font style.                3.1.1 Latent diffusion model for font generation. The main idea
+                                                                                   of diffusion models is to gradually perturb real data with increas-
+2.3     Speeding Up Diffusion Models                                               ing levels of tractable (e.g., Gaussian) noise until the real signal is
+The multi-step iterative inference process is a primal issue with                  transformed into the pure noise, and learn a denoising function to
+diffusion models and accelerating the inference process has become                 gradually denoise the pure noise back to the real data. Specifically,
+a main focus in the field. Accelerating can be done by either reducing             let 𝑥 0 ∼ 𝑞(𝑥 0 ) be a sample from the real data distribution 𝑞(𝑥), at
+the number of sampling steps or improving network architecture.                    each noise level 𝑡 ∈ {1, . . . ,𝑇 }, 𝑥 0 is perturbed with the Gaussian
+We focus on the former and leave the optimization of network                       noise 𝜖 using the noise schedule {𝛼𝑡 }, {𝜎𝑡 }:
+architecture for the task of font generation for future work.
+   Advanced samplers such as DDIM [Song et al. 2020a], DPM-                               𝑥𝑡 = 𝛼𝑡 𝑥 0 + 𝜎𝑡 𝜖, 𝜖 ∈ N (0, 1), 𝛼𝑡2 + 𝜎𝑡2 = 1, 𝛼𝑡 , 𝜎𝑡 ≥ 0.          (1)
+Solver [Lu et al. 2022], and DEIS [Zhang and Chen 2022] have
+emerged that are able to reduce the number of sampling steps to                       We follow the practice in DDPM [Ho et al. 2020] and train a
+around 10-20. Although they do not require additional training,                    𝜖-prediction network 𝜖𝜃 (𝑥𝑡 , 𝑡) to predict the noise added to 𝑥 0 to
+they fail drastically in the few-step regime, i.e., single or double step.         obtain 𝑥𝑡 using the variational bound, which can be simplified to the
+To accomplish few-step diffusion sampling, distillation methods                    loss L = E𝑥 0 ,𝜖,𝑡 [∥ 𝜖 − 𝜖𝜃 (𝑥𝑡 , 𝑡) ∥ 22 ], where the weighting function
+are proposed to distill the knowledge of multi-step teacher models                 is simply discarded. We base our method on latent diffusion mod-
+into few-step student models with the minimum quality degrada-                     els [Rombach et al. 2022], a variant of the original DDPM where the
+tion. [Luhman and Luhman 2021] proposes to straightforwardly                       perturbing and denoising processes are done in the latent space of
+distill diffusion teachers into one-step student models that learn to              an autoencoder. Let E be the encoder in LDM that compresses the
+output the deterministic DDIM results sampled by the teacher mod-                  original data into lower-dimensional representations and D be the
+els. To circumvent the problem of having to generate large amounts                 decoder, by substituting 𝑥 0 with 𝑧 0 = E (𝑥 0 ), we obtain the diffusion
+of synthetic training data offline, progressive distillation [Meng                 loss in the latent space:
+et al. 2023; Salimans and Ho 2022] is proposed, where the number
+of sampling steps is halved at each iteration by training the student                        L = E𝑥 0 ,𝜖,𝑡 [∥ 𝜖 − 𝜖𝜃 (𝑧𝑡 , 𝑡) ∥ 22 ],   𝑧𝑡 = 𝛼𝑡 𝑧 0 + 𝜎𝑡 𝜖.      (2)
+model to match the 2-step output of the teacher model. Alterna-                       Given a content reference image 𝑥𝑐 rendered in the source font
+tively, [Song et al. 2023] introduces consistency models that achieves             style (e.g., Heiti) and a set of 𝑘 style reference images 𝑋𝑠 = {𝑥𝑠1, . . . , 𝑥𝑠𝑘 }
+single-step generation by enforcing self-consistency between two                   in the desired font, our goal is to generate a glyph image in the de-
+adjacent points along the same deterministic diffusion trajectory                  sired font that aligns with the content in 𝑥𝑐 . It is essentially an image-
+and has later been applied to speed up latent diffusion models [Luo                to-image translation task and a straightforward way to achieve this
+et al. 2023].                                                                      is to train a conditional diffusion model conditioned on the input
+   Recently, several works turn to borrow from the text-to-3D lit-                 glyph images. Our method adopts a component-aware module C,
+erature and have achieved state-of-the-art results in single-step                  which we will later describe in depth, to encode the information of
+diffusion generation [Sauer et al. 2023; Yin et al. 2023]. The tech-               input content and style reference glyph images into the conditioning
+niques of utilizing knowledge from pre-trained large-scale diffusion               vector 𝑦 = C(𝑥𝑐 , 𝑋𝑠 ). Thereby, the new loss function is defined as:
+models to guide 3D models in producing realistic results, e.g., Score
+Distillation Sampling [Poole et al. 2022; Sauer et al. 2023] and Vari-
+                                                                                                  L = E𝑧0 ,𝜖,𝑡 [∥ 𝜖 − 𝜖𝜃 (𝑧𝑡 , 𝑡, C(𝑥𝑐 , 𝑋𝑠 )) ∥ 22 ].           (3)
+ational Score Distillation [Hoang Nguyen and Tran 2023; Wang
+et al. 2023a; Yin et al. 2023], have been found effective for guiding                 In addition, in the multi-step diffusion sampling scenario, classifier-
+the learning of a single-step generation network with the aid of an                free guidance is frequently used to trade diversity for quality by
+additional regression or adversarial loss. In this paper, we find that             leading the samples towards higher-density regions given certain
+a simple score distillation loss works sufficiently and effectively for            input conditions. We follow the practice in [Brooks et al. 2023] of
+our font synthesis task.                                                           conducting classifier-free guidance for multiple conditioning. The
+                                                                                   guided score estimate is computed by:
+3       METHOD
+                                                                                   𝜖˜𝜃 (𝑧𝑡 , 𝑡, C(𝑥𝑐 , 𝑋𝑠 )) = 𝜖𝜃 (𝑧𝑡 , 𝑡, C(∅, ∅))
+The overall framework of our method is shown in Fig. 2, which
+consists of three parts: a conditional latent diffusion model with                                        + 𝑠𝑐 · (𝜖𝜃 (𝑧𝑡 , 𝑡, C(𝑥𝑐 , ∅)) − 𝜖𝜃 (𝑧𝑡 , 𝑡, C(∅, ∅)))
+component-aware encoders that is used to generate high-fidelity                                           + 𝑠𝑠 · (𝜖𝜃 (𝑧𝑡 , 𝑡, C(𝑥𝑐 , 𝑋𝑠 )) − 𝜖𝜃 (𝑧𝑡 , 𝑡, C(𝑥𝑐 , ∅))),
+low-resolution results (i.e., 64 × 64), a diffusion distillation branch                                                                                           (4)
+
+ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+                                                                     HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution •                          176:5
+
+
+
+      Stage A: High-fidelity low-resolution model                                            Stage B1: High-fidelity low-resolution one-step model
+                                                                                                                        𝑧!                               𝜀,
+                                                                                                                                                          ̂          𝑧,
+                                                                                                                                                                      ̂        add noise
+                                                              Component-aware                                                                                                  predict 𝒛𝟎 from 𝜀
+                                             Content              Conditioning                               E                    One-step
+                                             Encoder                                                                           Student model 𝝓
+                                                                                                                                                                          backpropagate onto
+                                                                          Q
+                                                                                                                                                                            student weights
+                                                                                     fixed                                                                           𝜀
+                             ...        Style            K,V
+                                                                     CrossAttn
+                                                                                   conditions
+                                                                                                                                                                   compute      compute
+                                       Encoder                                           di pr                                 Teacher model 𝜽                     gradient       loss
+                                                                                           ffu e-
+                                                                                              si tra
+                                                                              y                 on in              𝑧"                                        𝜀-̂
+                                                                                                  w ed
+                                                                                                   ei gh
+                              𝑧%             𝑧"#$                                                    𝑧" ts          𝑧!                Stage B2: High-fidelity high-resolution model
+          𝑥"                                                                                                                      pre-trained condi-                                      concat
+                                                                                                                                   tioning weights
+
+                     D                 ...            KV       KV                 KV     KV                  ...                           SR LDM
+                                                                                                                                                                    SR LDM
+                                                      Q        Q                  Q      Q
+                                                                                                𝜖!
+                                                                                                                                      pre-trained
+                                                             Latent Diffusion Model
+                                                                                                                                  diffusion weights
+
+
+
+Fig. 2. An overview of our method. The three segments denote three parts of our framework. Weights from the Stage A low-resolution model are used to
+initialize the training of Stage B1 and Stage B2, which are parallel to each other. Note that the colored images are only for visualization; only gray-scale glyph
+images are input into the network.
+
+
+                    Component-level
+                   references(p=0.9)
+                                                    Stroke-level
+                                                 references(p=0.1)
+                                                                         Randomly selected
+                                                                          style references            images 𝑥𝑠𝑖 , 𝑖 = 1, . . . , 𝑘 into style features 𝑓𝑠𝑖 ∈ R𝑑𝑠 ×ℎ𝑠 ×𝑤𝑠 , 𝑖 = 1. . . , 𝑘,
+                { "澳", "滨", "法", ... }        { "逆", "凄", "斟", ... }
+                                                                                                      and the content encoder encodes the content reference image 𝑥𝑐 into
+                                                                                                      the content feature 𝑓𝑐 ∈ R𝑑𝑐 ×ℎ𝑐 ×𝑤𝑐 . We represent each of the style
+                { "流", "蔬", "育", ... }        { "耘", "球", "禚", ... }
+                                                                                                      feature as ℎ𝑠 × 𝑤𝑠 tokens of dimension 𝑑𝑠 and the content feature
+                { "膏", "滑", "脊", ... }        { "周", "进", "毋", ... }                                  as ℎ𝑐 × 𝑤𝑐 tokens of dimension 𝑑𝑐 , and performs cross-attention:
+                { "敖", "弊", "改", ... }        { "饭", "解", "然", ... }
+                                                                                                                                                              𝑄𝐾𝑇
+                                                                                                                         𝑦 = 𝐴𝑡𝑡𝑒𝑛𝑡𝑖𝑜𝑛(𝑄, 𝐾, 𝑉 ) = 𝑠𝑜 𝑓 𝑡𝑚𝑎𝑥 ( √ ) · 𝑉 ,
+Fig. 3. Our reference selecting procedure that enables the model to deal                                                                                        𝑑                                   (5)
+with different levels of style information.                                                                                       (𝑖 ) ˜          (𝑖 ) ˜         (𝑖 )
+                                                                                                                            𝑄 = 𝑊 · 𝑓𝑐 , 𝐾 = 𝑊 · 𝑓𝑠 , 𝑉 = 𝑊 · 𝑓˜𝑠 ,
+                                                                                                                                  𝑄                      𝐾                     𝑉
+
+                                                                                                                        (𝑖 )              (𝑖 )    (𝑖 )
+where the two guidance scales 𝑠𝑐 and 𝑠𝑠 control how strongly the                                      where 𝑊𝑄      ∈ R𝑑 ×𝑑𝑐 , 𝑊𝐾 ,𝑊𝑉 ∈ R𝑑 ×𝑑𝑠 are projection matrices
+generated samples correspond to content and style conditions, re-
+                                                                                                      for the 𝑖-th head, 𝑓˜𝑐 is the flattened version of 𝑓𝑐 , and 𝑓˜𝑠 is the flat-
+spectively. Null condition ∅ is done by setting input images to
+                                                                                                      tened version of the aggregated style feature 𝑓𝑠 = 𝑐𝑜𝑛𝑐𝑎𝑡𝑒𝑛𝑎𝑡𝑒 (𝑓𝑠1, ..., 𝑓𝑠𝑘 ).
+all-zero vectors. Following [Brooks et al. 2023], we randomly set
+                                                                                                      In this way, through attention mechanism, each fine-grained posi-
+only 𝑥𝑐 = ∅ for 5% of the input conditions, only 𝑋𝑠 = ∅ for 5% of
+                                                                                                      tion on the content feature maps learns to attend to relevant posi-
+the input conditions, and both for 5% of the input conditions.
+                                                                                                      tions on the style feature maps, and the relevant style features are
+3.1.2 Component-aware conditioning. As we know, the style of                                          gathered to form the final conditioning feature of size 𝑑 × ℎ𝑐 × ℎ𝑐 .
+a font exists at different structural levels of a glyph image and                                        To guide such learning process, we explicitly feed our style en-
+different characters share different common style information. To be                                  coder with carefully chosen style references that correspond to the
+specific, global styles (e.g., size, aspect ratio, stroke thickness, overall                          components and strokes the content character contains. [Lian et al.
+spatial layout, etc) are ubiquitous among all characters, stroke-level                                2018] defines 𝑚 = 1, 032 categories of components and 𝑛 = 339 cate-
+styles (e.g., brush details near the end of certain strokes, sloping                                  gories of fine-grained strokes for Chinese characters, and constructs
+of certain strokes, etc) are shared among characters containing                                       several character sets of different sizes that cover different ratios of
+common strokes, and component-level styles (e.g., special designs                                     components and strokes. We use the OptSet in [Lian et al. 2018] that
+of certain radicals) are only shared among characters with mutual                                     consists of 775 commonly used Chinese characters as our full style
+components.                                                                                           reference set since it covers all components that appear in Chinese
+   Therefore, ideally, we would like our model to be able to focus on                                 characters from the GB2312 official standard. For each character 𝑐
+different relevant parts of the style references at different structural                              in the training set, suppose 𝑐 consists of 𝑚𝑐 components that belong
+levels of the input content. Motivated by FsFont [Tang et al. 2022],                                  to the component category 𝑐𝑜𝑚𝑝𝑐,𝑖 ∈ {1, . . . , 𝑚}, 𝑖 = 1. . . , 𝑚𝑐 , and
+we resort to multi-head cross-attention to achieve such intention.                                    the 𝑖-th component consists of 𝑛𝑐,𝑖 strokes that belong to the stroke
+Specifically, our component-aware conditioning module consists                                        category 𝑠𝑡𝑟𝑜𝑘𝑒𝑐,𝑖,𝑗 ∈ {1, . . . , 𝑛}, 𝑗 = 1, . . . , 𝑛𝑐,𝑖 .
+of a style encoder 𝐸𝑠 , a content encoder 𝐸𝑐 , and a cross-attention                                     Next, we try to establish the selection of style references. The
+module. The style encoder separately encodes all 𝑘 style reference                                    number of style references 𝑘 is set to 6 since Chinese characters
+
+                                                                                                             ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+176:6   • Hua Li and Zhouhui Lian
+
+
+are typically decomposed into at most 6 components. We build a                     teacher model at each time step 𝑡. The distillation is equivalent to
+component-level character-reference mapping and a stroke-level                     optimizing the following objective:
+character-reference mapping that assign a sub-reference set 𝑋𝑐𝑜𝑚𝑝𝑐,𝑖                                       𝜎𝑡
+to each component 𝑐𝑜𝑚𝑝𝑐,𝑖 in a character 𝑐. For the former map-                           L𝑆𝐷𝑆 = E𝑡,𝑦 [ 𝑤 (𝑡)𝐷𝐾𝐿 (𝑞(𝑧𝑡 |𝑧ˆ𝜙 ; 𝑦, 𝑡) ∥ 𝑝𝜃 (𝑧𝑡 |𝑦, 𝑡))], (6)
+                                                                                                           𝛼𝑡
+ping, 𝑋𝑐𝑜𝑚𝑝𝑐,𝑖 consists of all characters from the reference set that              where 𝑞(𝑧𝑡 |𝑧ˆ𝜙 ; 𝑦, 𝑡) is the marginal distribution defined in the for-
+contains the component 𝑐𝑜𝑚𝑝𝑐,𝑖 ; for the latter, 𝑋𝑐𝑜𝑚𝑝𝑐,𝑖 consists                 ward process (i.e., 𝑧𝑡 = 𝛼𝑡 𝑧ˆ𝜙 + 𝜎𝑡 𝜖) and 𝑝𝜃 (𝑧𝑡 |𝑦, 𝑡) is the marginal
+of all characters from the reference set that contains any stroke                  distribution at time step 𝑡 implicitly described by the teacher model.
+from the stroke set {𝑠𝑡𝑟𝑜𝑘𝑒𝑐,𝑖,𝑗 , 𝑗 = 1, . . . , 𝑛𝑐,𝑖 }. During training, we         Since estimating noise added to a data sample is equivalent to
+randomly select one character from each 𝑋𝑐𝑜𝑚𝑝𝑐,𝑖 to form the style                 estimating the score of the perturbed data distribution up to some
+reference set of character 𝑐 and then randomly fill the rest of the 𝑘              constant factors [Song et al. 2020b], the gradient of the above object
+positions. The two mappings are used with a probability of 1 − 𝑝                   can be approximated by:
+and 𝑝, respectively. We use OptSet as the style reference set during
+training; during testing, new mappings are constructed according to                                    𝜎𝑡
+the given reference set. See Fig. 3 for an illustration of the reference             ∇𝜙 L𝑆𝐷𝑆 = E𝑡,𝑦 [     𝑤 (𝑡)∇𝜙 𝐷𝐾𝐿 (𝑞(𝑧𝑡 |𝑧ˆ𝜙 ; 𝑦, 𝑡) ∥ 𝑝𝜃 (𝑧𝑡 |𝑦, 𝑡))]
+                                                                                                       𝛼𝑡
+selection procedure.                                                                                                               𝜕𝑧ˆ𝜙                    (7)
+    Although our style encoder has only seen OptSet during training,                           = E𝑡,𝜖,𝑦 [𝑤 (𝑡)(𝜖𝜃 (𝑧𝑡 , 𝑡, 𝑦) − 𝜖)      ],
+it is able to generalize to reference glyph images outside of OptSet,                                                               𝜕𝜙
+meeting the requirements of real-world application scenarios where                 where the noise estimation can be substituted by the classifier-
+arbitrary style references are available. On the other side, although              free guided version. We only update diffusion weights, i.e., the
+we leave OptSet out of training images for simplicity, our model is                conditioning weights are fixed during training. 𝑤 (𝑡) is set to be
+still capable of generating characters in OptSet. Please refer to our              uniform across all 𝑡 in our experiment. Note that unlike the method
+supplemental materials for synthesized glyph images of Chinese                     proposed in [Sauer et al. 2023] where the distillation loss is computed
+characters in OptSet using style references outside of OptSet.                     in the pixel space, our method operates in the latent space.
+
+                                                                                   3.3   Towards Higher Resolution
+3.2     One-step Generation via Score Distillation Sampling                        The motivation of moving the generation process towards higher
+An image diffusion model usually requires tens of sampling steps                   resolution is two-fold: 1) a lot of information, such as style details
+in order to produce valid, high-quality outputs. We empirically find               or densely placed strokes, is lost at low resolution (e.g., 64 × 64, see
+that for our model, sampling 10 steps using a simple DDPM sampler                  Fig. 9), therefore an upsampling procedure is needed to recover such
+(i.e., 1-order SDE sampler) gives sufficiently good results. This is               lost information; 2) the gap between raster images and vector fonts
+likely due to the reduced complexity of our target glyph image                     can be narrowed through upsampling, i.e., if we can generate sharp,
+domain compared to the regular image domain; nevertheless, 10-                     correct, and high-quality images at the resolution 1024 × 1024 or
+step inference is still far from fast, real-time generation. In this               higher, vectorizing can be done with negligible losses (see Fig. 10 for
+section, we propose to distill the above trained model into a one-                 some vectorization results of our generated glyph images compared
+step generation model using a strategy based on Score Distillation                 to the corresponding ground-truth vector glyphs).
+Sampling [Poole et al. 2022].                                                          We achieve the generation of high-resolution glyph images by
+    Score Distillation Sampling (SDS) is originally proposed for the               consecutively upsampling low-resolution results to higher reso-
+task of text-to-3D generation, where the knowledge of a pre-trained                lutions using a cascade of conditional super-resolution diffusion
+2D text-to-image diffusion model is utilized to guide a 3D model to                models, i.e., from 64 × 64 to 256 × 256, and then from 256 × 256
+render plausible 2D images from random angles, in turn achieving                   to 1024 × 1024. Cascaded diffusion models [Ho et al. 2022] have
+effective learning of the 3D model. We find that this distillation                 been used in the generation of high-resolution images with great
+process can also be employed to reduce the sampling steps of our                   success [Saharia et al. 2022]. The noise conditioning augmentation
+model, without the need for an additional auxiliary regression [Yin                procedure is crucial for correcting artifacts generated by lower-
+et al. 2023] or the adversarial loss [Sauer et al. 2023].                          resolution models. Instead of directly applying other existing image
+    The distillation procedure is shown as Stage B1 in Fig. 2. It in-              super-resolution models, we use the same framework adopted in
+volves a frozen trained teacher model 𝜖𝜃 (𝑧𝑡 , 𝑡, 𝑦) and a one-step                Stage A, i.e., a latent diffusion model coupled with the component-
+generation student model with weights initialized from the teacher                 aware conditioning module, for our super-resolution modules with
+model as 𝜖𝜙 (𝑧𝑇 , 𝑦) = 𝜖𝜃 (𝑧𝑇 ,𝑇 , 𝑦). The conditioned time step in the            two modifications: 1) we insert the given low-resolution image into
+student model is fixed to 𝑇 to ensure that the model starts from pure              the model by replacing the content reference image with the low-
+noise during inference [Lin et al. 2024; Sauer et al. 2023]. During                resolution image as well as concatenating it with input noisy latents
+training, the student model produces samples 𝑧ˆ𝜙 from the input                    𝑧𝑡 ; in this way, similar to what cross-attention in the conditioning
+𝑧𝑇 = 𝛼𝑇 𝑧 0 + 𝜎𝑇 𝜖 and the condition 𝑦. Similar to how the original                module is intended to do for the low-resolution model, we guide the
+SDS method treats 2D images rendered from a 3D model, we aim to                    attention at each position of the low-resolution image to relevant
+optimize the parameter 𝜙 so that 𝑧ˆ𝜙 looks like a plausible sample                 positions in style references in order to recover the lost details; 2)
+from the teacher model. This is achieved by moving the sample                      to perform noise conditioning augmentation, we encode the low-
+towards the high-density region, which is implicitly defined by the                resolution images to the latent space, corrupt them with Gaussian
+
+ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+                                                     HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution •       176:7
+
+
+noise, and then decode them back to the image space to serve as                 using component-level character-reference mappings becomes 1 −
+noise-augmented low-resolution image inputs; in addition, we add                𝑝− ˆ 𝑝, where 𝑝 is the probability of using stroke-level character-
+an extra condition 𝑠, the level of noise added during noise condition-          reference mappings. We set both 𝑝 and 𝑝ˆ to 0.1. By default, we
+ing augmentation, to the diffusion U-Net model; 3) to deal with the             use a DDPM [Ho et al. 2020] sampler to sample for 10 steps, a
+increase of memory usage that comes with higher resolution, we add              classifier-free guidance scale of 𝑠𝑐 = 2.0 and 𝑠𝑠 = 2.0, and we
+extra downsampling layers to our style and content encoders; the                use the trailing strategy specified in [Lin et al. 2024] for time step
+detailed network configurations are provided in the supplemental                selection. To train the methods being compared, we utilize their
+materials.                                                                      default settings on the small dataset. For the larger dataset, we
+   It should be pointed out that we use the weights from the low-               double the number of iterations used for the small one. If further
+resolution generation model to initialize our super-resolution mod-             training does not lead to better metric scores, we report metric
+els. This is because the style and content encoders there already               scores using the default number of training iterations. For one-
+possess knowledge of extracting and transferring desired styles.                step distillation, we use our model trained on the large dataset as
+                                                                                the teacher model, set classifier-free guidance scales to 𝑠𝑐 = 2.0
+4 EXPERIMENTS                                                                   and 𝑠𝑠 = 2.0, train for 2 epochs, and adopt a uniform weighting
+4.1 Experimental Setup                                                          function. For the super-resolution models, we train them using
+                                                                                weights initialized from the low-resolution model and use the same
+4.1.1 Datasets. To test our model and the compared methods’ abili-              sampling settings as those in the low-resolution model. After getting
+ties to model and scale to larger datasets, we construct a small-scale          the high-resolution (i.e., 1024 × 1024) glyph images, we apply the
+dataset and a large-scale dataset, the former consisting of 6,763               Image Trace tool in Adobe Illustrator to convert them into high-
+Chinese characters from the full GB2312 standard rendered in 438                quality vector glyphs (see Fig. 1 and Fig. 10).
+fonts, and the latter consisting of 6,763 Chinese characters rendered              In addition, we utilize three types of data augmentations specif-
+in 3,538 fonts. The small dataset is a subset of the large one. We              ically designed for glyph images: zooming in or out, widening or
+randomly extract the same 38 test fonts out of both datasets and                narrowing either horizontally or vertically, and applying italic styles.
+leave the rest 400 fonts and 3,500 fonts for training. We leave Opt-            The above-mentioned operations have proven to greatly enhance
+Set out of both training and testing character sets. During training,           our method’s effectiveness.
+we randomly select 5,500 characters as the training character set.
+For testing, we only test on unseen fonts to showcase the models’
+abilities to generalize to unseen fonts. Specifically, we use randomly          4.2      Comparison with State-of-the-art Methods
+selected 640 characters out of the training character set for testing           We first compare our Stage A low-resolution model with 8 state-of-
+generation quality on seen characters, and use the rest 488 charac-             the-art methods, including 6 GAN-based models: MX-Font [Park
+ters for testing generation quality on unseen characters. The same              et al. 2021b], DG-Font [Xie et al. 2021], FsFont [Tang et al. 2022], CG-
+applies for the other compared models as well unless otherwise                  GAN [Kong et al. 2022], CF-Font [Wang et al. 2023c], VQ-Font [Pan
+noted. For quantitative evaluation of our super-resolution models,              et al. 2023], and 2 diffusion-based models: Diff-Font [He et al. 2022]
+we report results on a randomly selected subset of the 640 seen                 and FontDiffuser [Yang et al. 2023b]. We use the default settings in
+characters of size 160 for faster evaluation.                                   their papers and source codes, including training hyper-parameters,
+4.1.2 Evaluation Metrics. We use RMSE, SSIM, and LPIPS to eval-                 number of references, image resolution, sampling steps, etc. We
+uate pairwise generation quality, i.e., how similar each generated              train each model on both the small and large datasets, then report
+glyph image is with the corresponding ground truth, and FID to                  test results for both the seen and unseen character sets. However,
+evaluate the distribution-wise similarity between real and generated            three exceptions exist: 1) CG-GAN [Kong et al. 2022] fails completely
+glyph images. Additionally, following [Park et al. 2021a], we train             when trained on the large dataset, demonstrating the inferiority of
+a character classifier and a font classifier to classify 6,763 classes          GANs in terms of scaling to large datasets; 2) Diff-Font [He et al.
+of characters and 3,538 classes of fonts up to accuracy 99.82% and              2022] is not generalizable to unseen characters, so we test it on seen
+93.52%, respectively, and test their accuracy on generated images               characters only; aside from that, we expand their training character
+as content accuracy (Acc(C)) and style accuracy (Acc(S)). It should             set with OptSet to enable applications in Section 4.5. Since our total
+be noted that these two metrics do not precisely represent content              number of training iterations (millions) are larger compared to the
+and style accuracy. All generated glyph images are resized to a                 default setting of the compared methods (hundreds of thousands),
+resolution of 64 × 64 for fair quantitative comparison.                         we also provide results of the compared methods trained for the
+                                                                                same number of iterations as ours in the supplemental materials to
+4.1.3 Implementation Details. For low-resolution model, we train                avoid possible unfairness brought by different training settings.
+our model for 50 epochs on the small dataset with a batch size of 64,              Quantitative results are shown in Table 1. For our model using
+and 20 epochs on the large dataset with a batch size of 128. To further         the reference size (denoted n_ref) of 𝑛 = 1, 10, 100, we use a size 𝑛
+facilitate generation in scenarios where only very few references are           subset of OptSet as the reference set and reconstruct new mappings
+available, in the last 10% of the training iterations, we replace the           accordingly. Except for Acc(C), where the top performing methods
+style references with 𝑘 identical glyph images randomly selected                all perform similarly, we surpass previous methods across all metrics
+                                             ˆ intending to encourage
+from the reference set with a probability of 𝑝,                                 by a large margin. Notably, using the full OptSet as the reference set,
+learning of one-shot generation. In this way, the probability of                our model achieves a FID of 1.305 on seen characters and a FID of
+
+                                                                                      ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+176:8    • Hua Li and Zhouhui Lian
+
+
+                                                            Table 1. Quantitative evaluation on unseen fonts.
+
+
+                     Train                     Unseen Fonts Seen Characters                                       Unseen Fonts Unseen Characters
+    Method
+                      Set        RMSE↓       SSIM↑ LPIPS↓ FID↓ Acc(C)↑                      Acc(S)↑    RMSE↓     SSIM↑ LPIPS↓ FID↓ Acc(C)↑              Acc(S)↑
+                     Small       0.364        0.387       0.251      21.955        0.984     0.082      0.365    0.378     0.248    21.261    0.991      0.089
+    MX-Font
+                     Large       0.333        0.465       0.217      24.306        0.999     0.109      0.335    0.455     0.216    23.770    0.998      0.113
+                     Small       0.295        0.546       0.197      23.383        0.955     0.067      0.301    0.530     0.198    22.689    0.973      0.040
+    DG-Font
+                     Large       0.301        0.540       0.199      9.914         0.921     0.061      0.306    0.532     0.196    9.819     0.954      0.039
+                     Small       0.306        0.493       0.235      19.129        0.946     0.010      0.305    0.501     0.222    15.594    0.950      0.024
+        FsFont
+                     Large       0.318        0.462       0.261      33.084        0.276     0.067      0.327    0.426     0.284    38.676    0.193      0.035
+                     Small       0.314        0.521       0.201      18.929        0.968     0.170      0.317    0.513     0.202    19.210    0.968      0.166
+   CG-GAN
+                     Large         -            -           -           -            -         -          -        -         -         -        -          -
+                     Small       0.275        0.582       0.183      21.834        0.965     0.111      0.275    0.580     0.181    21.551    0.960      0.121
+    CF-Font
+                     Large       0.269        0.577       0.193      15.829        0.910     0.060      0.271    0.570     0.192    15.270    0.914      0.061
+                     Small       0.274        0.574       0.215      24.552        0.900     0.017      0.278    0.562     0.215    24.563    0.892      0.019
+    VQ-Font
+                     Large       0.270        0.584       0.213      19.130        0.880     0.028      0.274    0.572     0.213    19.313    0.872      0.028
+                     Small       0.322        0.515       0.212       7.665        0.868     0.078        -        -         -        -         -          -
+    Diff-Font
+                     Large       0.296        0.566       0.178       3.799        0.990     0.194        -        -         -        -         -          -
+                     Small       0.326        0.479       0.213      12.513        0.991     0.136      0.329    0.469     0.214    12.929    0.990      0.136
+ FontDiffuser
+                     Large       0.309        0.522       0.189      14.264        0.992     0.243      0.313    0.511     0.190    14.625    0.991      0.246
+     Ours            Small       0.279        0.599       0.161      3.438         0.995     0.314      0.286    0.583     0.164    3.541     0.994      0.317
+   (n_ref=1)         Large       0.274        0.610       0.153      2.437         0.990     0.547      0.281    0.594     0.157    2.604     0.990      0.545
+      Ours           Small       0.273        0.612       0.153       3.034        0.993     0.375      0.281    0.595     0.157    3.115     0.993      0.377
+   (n_ref=10)        Large       0.266        0.627       0.142       1.780        0.989     0.642      0.273    0.611     0.147    1.964     0.989      0.634
+     Ours            Small       0.258        0.643       0.134       2.340        0.997     0.452      0.267    0.623     0.139    2.472     0.996      0.448
+  (n_ref=100)        Large       0.250        0.658       0.125       1.392        0.993     0.676      0.259    0.639     0.130    1.581     0.991      0.667
+     Ours            Small       0.243        0.672       0.118      1.836         0.998     0.530     0.252     0.654     0.122    1.967     0.997      0.528
+  (n_ref=775)        Large       0.234        0.690       0.109      1.209         0.997     0.705     0.243     0.672     0.113    1.400     0.996      0.694
+
+
+
+1.440 on unseen characters. Even using as few as 10 references, our                           We show extra generated results from our model trained on the
+model achieves state-of-the-art results. While Diff-Font [He et al.                        large dataset on more difficult cases in Fig. 6, i.e., unseen fonts
+2022] achieves a relatively low FID of 3.799, it underperforms in                          with complicated styles, special designs, etc. Our model displays
+other metrics. From their synthesis results, it is evident that despite                    remarkable style-wise diversity and consistency as well as impres-
+producing sharp and plausible glyph images, Diff-Font fails to learn                       sive content-wise accuracy. In the rest of the paper, if not pointed
+a consistent and accurate style (see Fig. 4).                                              out particularly, we conduct experiments and present results using
+   Qualitative results from models trained on the large dataset are                        our model trained on the large dataset with the full OptSet as the
+visualized in Fig. 4 and Fig. 5. Please refer to our supplemental                          reference set by default.
+materials for synthesis results obtained from various models trained
+on the small dataset. It can be seen from the generated results that
+our model produces samples with fine and sharp details while being
+consistent with the reference images for a variety of styles. Using                        4.3   One-step Generation Results
+different sizes of input inferences, it is able to extract different levels
+                                                                                           In this section, we evaluate the effectiveness of our distillation
+of style information from the reference set, e.g., stroke thickness,
+                                                                                           method by comparing our one-step distilled model with the teacher
+spatial layout, etc. from a smaller reference set, and delicate brush
+                                                                                           model both quantitatively and qualitatively. We use the same met-
+details, specially designed components, etc. from a larger reference
+                                                                                           rics mentioned above to evaluate font generation quality; for the
+set. The GAN-based methods often exhibit blurriness and artifacts,
+                                                                                           evaluation of generation speed and efficiency, we set the batch size
+while the two diffusion-based models produce visually pleasing
+                                                                                           to 64, the image resolution to 64 × 64, and record the average run-
+glyph images thanks to the generative ability of diffusion models
+                                                                                           ning time needed to generate the entire seen character test set on a
+but fail to effectively transfer style from input references.
+                                                                                           single NVIDIA A40 for all relevant methods.
+
+ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+                                                        HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution •     176:9
+
+
+
+    MX-Font
+
+    DG-Font
+     FsFont
+
+    CF-Font
+
+    VQ-Font
+
+    Diff-Font
+  FontDiffuser
+
+ Ours(n_ref=1)
+
+ Ours(n_ref=10)
+
+ Ours(n_ref=100)
+ Ours(n_ref=775)
+     Target
+Fig. 4. Comparison of generated results from models trained on the large dataset on unseen fonts seen characters. n_ref denotes the number of style references.
+
+    MX-Font
+    DG-Font
+
+     FsFont
+
+    CF-Font
+
+    VQ-Font
+  FontDiffuser
+
+ Ours(n_ref=1)
+
+ Ours(n_ref=10)
+
+ Ours(n_ref=100)
+ Ours(n_ref=775)
+     Target
+Fig. 5. Comparison of generated results from models trained on the large dataset on unseen fonts unseen characters. n_ref denotes the number of style
+references.
+
+ Ours(n_ref=10)
+ Ours(n_ref=100)
+
+ Ours(n_ref=775)
+     Target
+                 Fig. 6. Extra generated results from our model trained on the large dataset. n_ref denotes the number of style references.
+
+   Table 2 presents the quantitative results of our one-step distilled             multi-step teacher model, while the teacher model does not produce
+model and the teacher model. Our distilled model achieves even bet-                valid results in the one-step setting, proving the effectiveness of our
+ter RMSE, SSIM and LPIPS results compared to its teacher model, in                 design.
+the meantime achieving decent FID, Acc(C) and Acc(S) scores. Fig. 7                  Fig. 8 compares the generation efficiency of our model with other
+presents some generation results of relevant models. We can see                    GAN-based and diffusion-based models. It can be observed that our
+that our one-step distilled model faithfully mimics the output of the
+
+
+                                                                                       ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+176:10   • Hua Li and Zhouhui Lian
+
+
+
+ Original(10 steps)
+  Original(1 step)
+
+  Distilled(1 step)
+         Target
+  Fig. 7. Comparison of generated results from our one-step distilled model and its multi-step teacher model. The full OptSet is used as the reference set.
+    Table 2. Quantitative evaluation of our one-step distilled model and the teacher model on unseen fonts. The full OptSet is used as the reference set.
+
+
+                                                Unseen Fonts Seen Characters                                              Unseen Fonts Unseen Characters
+  Method        #Steps
+                               RMSE↓          SSIM↑ LPIPS↓ FID↓ Acc(C)↑                           Acc(S)↑     RMSE↓      SSIM↑ LPIPS↓ FID↓ Acc(C)↑                    Acc(S)↑
+  Teacher          10          0.234          0.690          0.109         1.209        0.997     0.705       0.243      0.672      0.113      1.400       0.996      0.694
+  Teacher           1          0.230          0.678          0.186        50.882         0.719     0.054      0.238      0.660      0.190      50.497      0.717       0.052
+  Distilled         1          0.229          0.699         0.105          1.683         0.996     0.675      0.237      0.684      0.109      1.871       0.996       0.669
+
+
+
+                                                                                                   Table 3. Quantitative evaluation of our SR model compared to an off-the-
+                                                                                                   shelf SR model Real-ESRGAN (denoted as RE). 256 and 1024 denote images
+                                                                                                   in the resolutions of 256 × 256 and 1024 × 1024, respectively.
+
+
+                                                                                                    Method      RMSE↓      SSIM↑      LPIPS↓      FID↓      Acc(C)↑     Acc(S)↑
+                                                                                                       RE
+                                                                                                                 0.263      0.674      0.123      18.732      0.997       0.637
+                                                                                                      (256)
+                                                                                                      Ours
+                                                                                                                 0.265      0.676      0.122      14.861      0.996       0.766
+                                                                                                      (256)
+                                                                                                       RE
+                                                                                                                 0.285      0.657      0.129      15.315      0.997       0.634
+                                                                                                     (1024)
+                                                                                                      Ours
+                                                                                                                 0.286      0.663      0.127      5.996       0.996       0.742
+                                                                                                     (1024)
+
+
+Fig. 8. Comparison of the performance of different font synthesis methods.
+Our models maintain an optimal balance between generation quality and
+efficiency, markedly outperforming other diffusion-based approaches in                             achieving much better FID score. As the number of sampling steps
+both two aspects.                                                                                  drops to as few as 1, the main overhead of the model becomes the
+                                                                                                   decoder part of the autoencoder. Further optimization can be done
+                                                                                                   to improve the efficiency of the autoencoder, which we leave to
+                                                                                                   future work.
+
+                                                                                                   4.4     High-resolution Generation and Vectorization Results
+                                                                                                   In this section, we present high-resolution synthesis results obtained
+                                                                                                   by our super-resolution models. We first compare our model with
+                                                                                                   an off-the-shelf super-resolution model Real-ESRGAN [Wang et al.
+      Ours      Real-ESRGAN        Ours        Ours (distilled)       Ours             GT          2021] in Fig. 9 and Table 3 to showcase our model’s capability to
+    (64 × 64)    (256 × 256)    (256 × 256)     (256 × 256)       (1024 × 1024)   (1024 × 1024)
+                                                                                                   recover lost style details in low-resolution results. It can be seen
+                                                                                                   clearly from the zoom-in images in Fig. 9 that our model is able to ex-
+Fig. 9. Visualization of detailed styles recovered by our super-resolution                         tract and recover style details from high-resolution style references.
+module.
+                                                                                                   This is also reflected in the increased value of Acc(S).
+                                                                                                      We have performed the distillation procedure on the super-resolution
+distilled model is significantly faster than the compared diffusion-                               models and the super-resolution results of the distilled models are
+based models, and comparable with GAN-based methods while                                          shown alongside their multi-step teacher models in Fig. 9.
+
+ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+                                                         HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution •     176:11
+
+
+Ref. Examples       DG-Font          CF-Font       Diff-Font     FontDiffuser      Ours(64x64)         Ours(1024x1024)                          Ground Truth
+
+
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+ 爱氨
+ 岸盎
+Fig. 10. Examples of vector glyphs obtained by vectorizing glyph images synthesized by different methods. Four samples of input style references in each font
+are shown in the first column. The resolution of the original raster images generated by our method is indicated in the figure. Please zoom in for better clarity.
+
+
+   Generating high-quality glyph images at such high resolution (i.e.,               the Image Trace tool in Adobe Illustrator as an off-the-shelf vec-
+1024 × 1024) allows us to convert them into vector fonts through                     torizer to transform low-resolution glyph images synthesized by
+a vectorization process with negligible quality loss to narrow the                   our model and several compared models, as well as high-resolution
+gap between the image modality and the vector modality. We use                       glyph images produced by our model into vector glyphs. Vectoriza-
+                                                                                     tion results of glyph images synthesized by different methods are
+
+
+                                                                                         ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+176:12   • Hua Li and Zhouhui Lian
+
+
+
+ AGIS-Net
+
+ Diff-Font
+
+      Ours
+
+    Target
+
+                                                     Fig. 11. Comparison of artistic glyph image synthesis results.
+
+
+shown in Fig. 10. Directly applying vectorization to glyph images                      in [Gao et al. 2019], TE141K-C in [Yang et al. 2020], and our syn-
+generated by current state-of-the-art methods does not yield satis-                    thetic dataset. Since each style in TE141K-C only contains 775 char-
+factory outcomes, as their raster images lack both style accuracy and                  acters from OptSet, we fine-tune each style using randomly selected
+high-resolution details. On the other hand, our component-aware                        100 characters and test on the remaining characters. Regarding im-
+low-resolution generation model coupled with a style-recovering                        plementation details, we train our model on the color-augmented
+super-resolution module can successfully produce samples that are                      dataset with weights initialized from the model trained on black and
+of sufficient quality for a vectorizer to produce satisfactory vec-                    white glyph images; during testing, for each given style, we fine-
+tor glyphs with precise control point positions. To the best of our                    tune our autoencoder for 80 epochs and our LDM for 240 epochs. For
+knowledge, until now, no method directly targeting the automatic                       the compared methods, we adopt the default settings in AGIS-Net
+generation of high-quality vector fonts has been reported capa-                        to fine-tune their model for 500 epochs and we fine-tune 320 epochs
+ble of handling glyphs at such level of structural complexity and                      for Diff-Font to match our total fine-tuning epochs. Note that our
+style diversity. In this paper, we choose an alternative strategy to                   model does have a slight advantage over the compared methods
+generate vector fonts by vectorizing high-quality, high-resolution                     since we pre-train on glyph images with augmented colors for both
+synthesized glyph images, achieving impressive results.                                the foreground and background.
+                                                                                          Results are shown in Fig. 11. AGIS-Net produces blurry results
+4.5      Application to Artistic Glyph Image Synthesis                                 containing the most visible artifacts. Diff-Font works well on some
+Artistic glyph image synthesis aims to generate the color and tex-                     styles while fails completely on some other styles; also, it sometimes
+ture of an artistic font in the meantime of generating the shape. It is                yields incorrect contents likely due to overfitting of the reference
+mostly done with a fine-tuning step, since there are limited training                  images. In contrast, our method performs stably better in terms of
+datasets available for the model to learn a representation that can                    both content preservation and style consistency for all test styles.
+be generalized to unseen patterns, and the possibilities for artistic                  Additionally, our method is the only one demonstrating capability
+designs are extensive (e.g., one can replace strokes with some real-                   in transferring special effects, e.g., design of leaves and bamboos for
+world objects, etc.). To equip our model with the ability to deal with                 the first style in Fig. 11, owing to the component-aware conditioning
+colored images, following [Gao et al. 2019], we first pre-train our                    we construct.
+model with a synthesized colored and textured glyph image dataset.
+It is constructed by applying common artistic text effects such as out-                4.6    Ablation Studies
+lining, shadowing, and coloring to the foreground and background                       In this section, we ablate several design choices in our method,
+of glyph images (see Fig. 12 for some examples). We randomly apply                     including the reference selection strategy in Section 3.1.2, data aug-
+these operations during training as a form of augmentation instead                     mentation described in Section 4.1.3, and the inclusion of different
+of generating a large-scale dataset beforehand.                                        levels of references in Section 3.1.2.
+                                                                                          We first print out the loss curves evaluated on the validation
+                                                                                       set during training for each variant in Fig. 13. For the variant that
+                                                                                       excludes reference selection, we use randomly selected 𝑘 samples
+                                                                                       as style references. As we can see from the loss curves, the ref-
+                                                                                       erence selection strategy we use and the data augmentation we
+                                                                                       incorporate are validated to be beneficial to our model. The more
+                                                                                       notable improvement is brought by the use of reference selection
+                                                                                       strategy, indicating its effectiveness in guiding the learning of style
+  Fig. 12. Examples of our synthetic colored and textured glyph images.
+                                                                                       transferring.
+                                                                                          For evaluation of the effect of using different levels of references,
+   We compare our model with two existing methods: AGIS-Net [Gao                       i.e., selecting from both stroke-related and component-related refer-
+et al. 2019], a GAN-based method targeting few-shot artistic glyph                     ences, we show generated results from the model trained using only
+image synthesis, and Diff-Font [He et al. 2022]. The test artistic                     component-related references in Fig. 14. The effect becomes more
+fonts come from three datasets: synthetic Chinese character dataset                    visible as the reference size decreases, where the model demonstrates
+
+ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+                                                          HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution •     176:13
+
+
+                                                                                      studies are conducted with our model trained on the large dataset
+                                                                                      with the full OptSet as the reference set.
+                                                                                         In the first part of our user studies, the participants are first
+                                                                                      shown 10 examples from the input reference set, then presented
+                                                                                      with 25 generated results mixed with 25 ground-truth samples and
+                                                                                      asked to choose which ones are computer-generated (see Fig. 15 for
+                                                                                      examples). The experiment is conducted on 10 fonts from our test set
+                                                                                      mentioned in Section 4.1.1 and all characters are randomly selected
+                                                                                      with no duplication. We collect a total of 211 data points from 93
+                                                                                      participants. The average accuracy across all participants and all font
+                                                                                      styles is 51.07%, which is close to a 50/50 random guess, indicating
+                                                                                      that our generated results are practically indistinguishable from
+                                                                                      references to common users.
+                                                                                         In the second part of our user studies, professional font designers
+                                                                                      are shown the 10 groups of vector glyphs in Fig. 10, each containing
+                                                                                      4 generated vector glyphs and 1 ground-truth vector glyph placed
+Fig. 13. The loss curves evaluated on the validation set for different variants
+of our model.
+                                                                                      in random order. We use vector glyphs vectorized from our high-
+                                                                                      resolution synthesis results to represent our model. Then, given sev-
+                                                                                      eral corresponding reference vector glyphs, participants are asked
+a behavior of transferring wrong components to target characters                      to rank the 5 vector glyphs (including the ground truth) from best
+instead of generating results adhering to given contents. We hy-                      to worst quality. In total, 11 font designers have participated in our
+pothesize that the model only learns a component transfer function                    experiment. We assess each font style individually; each generated
+during training, and does not learn to adhere to the input character                  vector glyph ranked as first to last is assigned a score of 4 to 0, and
+structure, as it is provided with all the necessary components to re-                 we calculate the total score for each generated vector glyph across all
+construct the target glyph. By weakening the input style references,                  participants. Results for each font style are compared in Fig. 16. Our
+we force the model to adjust to different levels of style information,                model reaches the highest score for 4 out of the 10 fonts and reaches
+learn different levels of style representations, and actively stay faith-             the second highest score for 6 of the fonts, led by the ground-truth
+ful to the given content. For qualitative results of other variants, we               vector glyphs only. This suggests that our generated vector fonts
+provide them in the supplemental materials.                                           are significantly better than those from the compared methods and
+                                                                                      are even comparable to designer-created ground-truth vector fonts,
+                                                                                      demonstrating the great potential of our model in automatically
+w/o stroke                                                                            fulfilling the task of professional vector font design.
+ (n_ref=10)
+with stroke
+                                                                                      5    FAILURE CASES AND LIMITATIONS
+ (n_ref=10)
+                                                                                      In this section, we present the failure cases of our model and discuss
+w/o stroke
+                                                                                      corresponding limitations.
+(n_ref=100)
+                                                                                         Firstly, our model does not have explicit control over character
+with stroke                                                                           structure, impairing its robustness in terms of content accuracy,
+(n_ref=100)                                                                           especially with fewer input references or for complicated characters.
+   Target                                                                             As we can see from Table 1 and Fig. 18 (a), the content accuracy
+                                                                                      drops as the number of references decreases. Even when using the
+Fig. 14. Our models, without the guidance of stroke-level references, tend            full OptSet as the reference set, as depicted in Fig. 18 (b), for a few
+to generate incorrect character contents and overlook stylistic details.              Chinese characters with complicated shapes, our model sometimes
+                                                                                      generates glyphs with duplicated or missing strokes, or synthesizes
+                                                                                      blurry results with densely placed strokes, which cannot be fixed
+4.7   User Studies                                                                    by our super-resolution models. Efforts can be put into equipping
+Since quantitative indicators do not strictly align with human per-                   our super-resolution models with prior knowledge on character
+ception, we also conduct user studies to further evaluate our method’s                structures to recover lost contents that are difficult to generate in
+effectiveness, which comprises two parts: 1) we perform a Turing                      low-resolution images. Apart from that, incorporating advanced
+test with non-expert participants using our low-resolution synthe-                    content preserving techniques [Yang et al. 2023b] into our model
+sis results to find out if our generated glyph images are indistin-                   may also be helpful .
+guishable from ground truths to common users; 2) to evaluate the                         Secondly, although our model demonstrates impressive style
+performance of our method in the real-world font design scenario,                     learning and transferring capability, there are still corner cases that
+we recruit several professional font designers to assess the quality of               our model cannot handle. Cases of imperfect style transferring are
+our generated vector glyphs from an expert point of view. Both user                   shown in Fig. 18 (c). Our model sometimes confuses the shadow or
+
+                                                                                          ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+176:14   • Hua Li and Zhouhui Lian
+
+
+
+
+           (a) Answer sheet                  (b) Test sheet #1                 (c) Test sheet #2             (d) Test sheet #3            (e) Test sheet #4
+
+
+Fig. 15. Example test sheets (b-e) shown to participants
+                                Example      test sheets for the first part
+                                                              shown     to ofparticipants
+                                                                              our user studies.
+                                                                                             forAs the
+                                                                                                   shown in the
+                                                                                                       first  part of sheet
+                                                                                                                answer      (a), glyphs
+                                                                                                                       our user         generated by our system
+                                                                                                                                    study.
+are marked in blue and the rest are ground-truth glyph images.
+                                       Characters generated by our system are marked in blue and the rest are
+                                                               ground truth images.
+
+
+
+
+Fig. 16. Calculated scores for each relevant vector glyph from each font in the second part of our user studies. Higher score denotes higher quality of the
+corresponding vector glyph (see Section 4.7 for details regarding the collection and calculation of scores). We can see that even professional font designers
+struggle to distinguish ground-truth vector glyphs from those generated by our method, which significantly outperforms other existing approaches.
+
+
+the outline parts with the actual glyph. Conducting augmentations                          from other languages can be added upon our framework. Never-
+of adding shadows or outlines to glyphs may be helpful.                                    theless, our model still possesses valuable knowledge of extracting
+   Also, our method is based on the structural decomposition of                            and transferring styles in glyph images and can serve as a strong
+Chinese characters and does not generalize well to other languages,                        initialization for the generation of other languages. We directly ap-
+especially for shapes that do not exist in the GB2312 Chinese charac-                      ply our Chinese generation framework on Korean characters using
+ter set, e.g., the shape of a circle. See Fig. 19 for examples of English                  our Chinese generation model as weight initialization and present
+and Korean characters. In order to achieve cross-language general-                         several generated results in Fig. 17, where the strong ability of learn-
+ization, methods to better grasp a global style to transfer to glyphs                      ing multi-level designs are shown to transfer to the generation of
+                                                                                           Korean characters. Please refer to the supplementary materials for
+
+
+ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+                                                             HFH-Font: Few-shot Chinese Font Synthesis with Higher Quality, Faster Speed, and Higher Resolution •       176:15
+
+
+
+  Ours(n_ref=1)
+ Ours(n_ref=10)
+ Failure  cases of our method. Incorrect character structures are marked out
+ Ours(n_ref=36)
+with red circles. (a) Content accuracy drops steadily as number of references
+      Target (b) Blurry, duplicated or missing strokes, which cannot be fixed by
+decreases.
+                          our SR models. (c) Failed styles.
+Fig. 17. Korean glyphs synthesized by models fine-tuned from our Chinese generation model on unseen fonts seen characters. n_ref denotes the number of
+style references.
+
+
+    Ours                                                                                    Lastly, we discuss the limitation of our vectorization process. The
+  (n_ref=1)                                                                                           Oursvectorizer we use is a well-developed commercial tool
+                                                                                         off-the-shelf
+                                                                                                  (n_ref=775)
+    Ours
+ (n_ref=10)                                                                              that we empirically find to perform fairly robustly. However, we
+                                                                                                     Target
+    Ours                                                                                 did observe some less satisfactory cases. As presented in Fig. 20, the
+ (n_ref=100)                                                                             vectorizer Ours
+                                                                                                      sometimes fails to binarize our generated glyph images
+    Ours                                                                                          (n_ref=775)
+                                                                                         properly,  connecting components that are supposed to be separated
+ (n_ref=775)
+                                                                                         (first row),Target
+                                                                                                       and sometimes produces overly smoothed results that
+   Target                              Ours   Ours
+                                                    Target   Ours Target Ours Target
+                                       (64)   (256)                                      fail to perfectly preserve the original font style (second row).
+                   (a)                         (b)                     (c)
+                                                                                         6    CONCLUSIONS
+Fig. 18. Failure cases of our method. Incorrect character structures are                 This paper proposed HFH-Font, a few-shot Chinese font synthesis
+marked out with red circles. (a) Content accuracy drops as the number of                 framework capable of generating high-fidelity and high-resolution
+references decreases. (b) Blurry, duplicated or missing strokes, which cannot            glyph images that can be vectorized into high-quality vector fonts.
+be fixed by our SR model. (c) Imperfect style transfer.                                  Our component-aware encoders and reference selection strategy
+                                                                                         bring the flexibility of varying reference sizes into our system. Our
+              Content                                                                    proposed distillation method and detail-recovering super-resolution
+    Style                                                                                module are proven to be effective in improving the efficiency and
+                                                                                         generation quality of our system. Extensive experiments including
+                                                                                         user studies have been conducted to show that results produced by
+                                                                                         our system not only surpass existing state-of-the-art methods, but
+                                                                                         are even comparable to designer-created ones, raising the possibility
+                                                                                         of automatic generation of large-scale Chinese vector fonts.
+
+                                                                                         ACKNOWLEDGMENTS
+                                                                                         This work was supported by National Natural Science Foundation
+                                                                                         of China (Grant No.: 62372015), Center For Chinese Font Design and
+                                                                                         Research, and Key Laboratory of Intelligent Press Media Technology.
+
+Fig. 19. Cross-language font generation results of our Chinese font synthesis            REFERENCES
+model without fine-tuning on other languages.                                            Andreas Blattmann, Robin Rombach, Huan Ling, Tim Dockhorn, Seung Wook Kim,
+                                                                                            Sanja Fidler, and Karsten Kreis. 2023. Align your latents: High-resolution video
+                                                                                            synthesis with latent diffusion models. In CVPR. 22563–22575.
+                Our 1024x1024         Our vectorization                                  Tim Brooks, Aleksander Holynski, and Alexei A Efros. 2023. Instructpix2pix: Learning
+                                                             Ground Truth
+                 image results             results
+                                                                                            to follow image editing instructions. In CVPR. 18392–18402.
+
+
+                                                             霜
+                                                                                         Neill DF Campbell and Jan Kautz. 2014. Learning a manifold of fonts. ACM Transactions
+                                                                                            on Graphics (ToG) 33, 4 (2014), 1–11.
+                                                                                         Alexandre Carlier, Martin Danelljan, Alexandre Alahi, and Radu Timofte. 2020. Deepsvg:
+                                                                                            A hierarchical generative network for vector graphics animation. Advances in Neural
+                                                                                            Information Processing Systems 33 (2020), 16351–16361.
+
+
+                                                             醚
+                                                                                         Junbum Cha, Sanghyuk Chun, Gayoung Lee, Bado Lee, Seonghyeon Kim, and Hwalsuk
+                                                                                            Lee. 2020. Few-shot compositional font generation with dual memory. In ECCV.
+                                                                                            Springer, 735–751.
+                                                                                         Prafulla Dhariwal and Alexander Nichol. 2021. Diffusion models beat gans on image
+                                                                                            synthesis. Advances in neural information processing systems 34 (2021), 8780–8794.
+               Fig. 20. Some less satisfactory vectorization results.                    Yue Gao, Yuan Guo, Zhouhui Lian, Yingmin Tang, and Jianguo Xiao. 2019. Artistic glyph
+                                                                                            image synthesis via one-stage few-shot learning. ACM Transactions on Graphics
+                                                                                            (TOG) 38, 6 (2019), 1–12.
+                                                                                         Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil
+detailed description and discussion of our method’s extension to                            Ozair, Aaron Courville, and Yoshua Bengio. 2020. Generative adversarial networks.
+other languages.                                                                            Commun. ACM 63, 11 (2020), 139–144.
+
+
+                                                                                             ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+176:16   • Hua Li and Zhouhui Lian
+
+
+Dongnan Gui, Kai Chen, Haisong Ding, and Qiang Huo. 2023. Zero-shot Generation             Robin Rombach, Andreas Blattmann, Dominik Lorenz, Patrick Esser, and Björn Ommer.
+    of Training Data with Denoising Diffusion Probabilistic Model for Handwritten              2022. High-resolution image synthesis with latent diffusion models. In CVPR. 10684–
+    Chinese Character Recognition. arXiv preprint arXiv:2305.15660 (2023).                    10695.
+David Ha and Douglas Eck. 2017. A neural representation of sketch drawings. arXiv          Chitwan Saharia, William Chan, Saurabh Saxena, Lala Li, Jay Whang, Emily L Denton,
+    preprint arXiv:1704.03477 (2017).                                                          Kamyar Ghasemipour, Raphael Gontijo Lopes, Burcu Karagol Ayan, Tim Salimans,
+Haibin He, Xinyuan Chen, Chaoyue Wang, Juhua Liu, Bo Du, Dacheng Tao, and Yu                   et al. 2022. Photorealistic text-to-image diffusion models with deep language under-
+    Qiao. 2022. Diff-Font: Diffusion Model for Robust One-Shot Font Generation. arXiv          standing. Advances in Neural Information Processing Systems 35 (2022), 36479–36494.
+    preprint arXiv:2212.05895 (2022).                                                      Tim Salimans and Jonathan Ho. 2022. Progressive distillation for fast sampling of
+Jonathan Ho, Ajay Jain, and Pieter Abbeel. 2020. Denoising diffusion probabilistic             diffusion models. arXiv preprint arXiv:2202.00512 (2022).
+    models. Advances in neural information processing systems 33 (2020), 6840–6851.        Axel Sauer, Dominik Lorenz, Andreas Blattmann, and Robin Rombach. 2023. Adversarial
+Jonathan Ho, Chitwan Saharia, William Chan, David J Fleet, Mohammad Norouzi, and               Diffusion Distillation. arXiv preprint arXiv:2311.17042 (2023).
+   Tim Salimans. 2022. Cascaded diffusion models for high fidelity image generation.       Jascha Sohl-Dickstein, Eric Weiss, Niru Maheswaranathan, and Surya Ganguli. 2015.
+    The Journal of Machine Learning Research 23, 1 (2022), 2249–2281.                          Deep unsupervised learning using nonequilibrium thermodynamics. In International
+Thuan Hoang Nguyen and Anh Tran. 2023. SwiftBrush: One-Step Text-to-Image                      conference on machine learning. PMLR, 2256–2265.
+    Diffusion Model with Variational Score Distillation. arXiv e-prints (2023), arXiv–     Jiaming Song, Chenlin Meng, and Stefano Ermon. 2020a. Denoising diffusion implicit
+    2312.                                                                                      models. arXiv preprint arXiv:2010.02502 (2020).
+Phillip Isola, Jun-Yan Zhu, Tinghui Zhou, and Alexei A Efros. 2017. Image-to-image         Yang Song, Prafulla Dhariwal, Mark Chen, and Ilya Sutskever. 2023. Consistency models.
+    translation with conditional adversarial networks. In CVPR. 1125–1134.                     arXiv preprint arXiv:2303.01469 (2023).
+Yue Jiang, Zhouhui Lian, Yingmin Tang, and Jianguo Xiao. 2017. DCFont: an end-to-end       Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Abhishek Kumar, Stefano Er-
+    deep Chinese font generation system. In SIGGRAPH Asia 2017 Technical Briefs. 1–4.          mon, and Ben Poole. 2020b. Score-based generative modeling through stochastic
+Yue Jiang, Zhouhui Lian, Yingmin Tang, and Jianguo Xiao. 2019. Scfont: Structure-              differential equations. arXiv preprint arXiv:2011.13456 (2020).
+    guided chinese font generation via deep stacked networks. In Proceedings of the        Licheng Tang, Yiyang Cai, Jiaming Liu, Zhibin Hong, Mingming Gong, Minhu Fan,
+    AAAI conference on artificial intelligence, Vol. 33. 4015–4022.                            Junyu Han, Jingtuo Liu, Errui Ding, and Jingdong Wang. 2022. Few-shot font
+Yuxin Kong, Canjie Luo, Weihong Ma, Qiyuan Zhu, Shenggao Zhu, Nicholas Yuan, and               generation by learning fine-grained local styles. In CVPR. 7895–7904.
+    Lianwen Jin. 2022. Look closer to supervise better: one-shot font generation via       Shusen Tang, Zeqing Xia, Zhouhui Lian, Yingmin Tang, and Jianguo Xiao. 2019.
+    component-based discriminator. In CVPR. 13482–13491.                                       FontRNN: Generating Large-scale Chinese Fonts via Recurrent Neural Network. In
+Zhifeng Kong, Wei Ping, Jiaji Huang, Kexin Zhao, and Bryan Catanzaro. 2020. Diffwave:          Computer Graphics Forum, Vol. 38. 567–577.
+   A versatile diffusion model for audio synthesis. arXiv preprint arXiv:2009.09761        Vikas Thamizharasan, Difan Liu, Shantanu Agarwal, Matthew Fisher, Michael Gharbi,
+   (2020).                                                                                     Oliver Wang, Alec Jacobson, and Evangelos Kalogerakis. 2023. VecFusion: Vector
+Xiang Li, John Thickstun, Ishaan Gulrajani, Percy S Liang, and Tatsunori B Hashimoto.          Font Generation with Diffusion. arXiv preprint arXiv:2312.10540 (2023).
+    2022. Diffusion-lm improves controllable text generation. Advances in Neural           Yuchen Tian. 2017. https://github.com/kaonashi-tyc/zi2zi. (2017).
+    Information Processing Systems 35 (2022), 4328–4343.                                   Yuxiang Tuo, Wangmeng Xiang, Jun-Yan He, Yifeng Geng, and Xuansong Xie.
+Zhouhui Lian and Yichen Gao. 2022. CVFont: Synthesizing Chinese Vector Fonts via               2023. AnyText: Multilingual Visual Text Generation And Editing. arXiv preprint
+    Deep Layout Inferring. In Computer Graphics Forum, Vol. 41. 212–225.                       arXiv:2311.03054 (2023).
+Zhouhui Lian, Bo Zhao, Xudong Chen, and Jianguo Xiao. 2018. EasyFont: a style              Chi Wang, Min Zhou, Tiezheng Ge, Yuning Jiang, Hujun Bao, and Weiwei Xu. 2023c.
+    learning-based system to easily build your large-scale handwriting fonts. ACM              CF-Font: Content Fusion for Few-shot Font Generation. In CVPR. 1858–1867.
+    Transactions on Graphics (TOG) 38, 1 (2018), 1–18.                                     Xintao Wang, Liangbin Xie, Chao Dong, and Ying Shan. 2021. Real-esrgan: Training
+Shanchuan Lin, Bingchen Liu, Jiashi Li, and Xiao Yang. 2024. Common diffusion                  real-world blind super-resolution with pure synthetic data. In ICCV. 1905–1914.
+    noise schedules and sample steps are flawed. In Proceedings of the IEEE/CVF Winter     Yizhi Wang and Zhouhui Lian. 2021. DeepVecFont: Synthesizing high-quality vector
+    Conference on Applications of Computer Vision. 5404–5411.                                  fonts via dual-modality learning. ACM Transactions on Graphics (TOG) 40, 6 (2021),
+Yitian Liu and Zhouhui Lian. 2024. QT-Font: High-efficiency Font Synthesis via                1–15.
+    Quadtree-based Diffusion Models. In SIGGRAPH 2024 Conference Papers.                   Yuqing Wang, Yizhi Wang, Longhui Yu, Yuesheng Zhu, and Zhouhui Lian. 2023b.
+Ying-Tian Liu, Zhifei Zhang, Yuan-Chen Guo, Matthew Fisher, Zhaowen Wang, and                  Deepvecfont-v2: Exploiting transformers to synthesize vector fonts with higher
+    Song-Hai Zhang. 2023. Dualvector: Unsupervised vector font synthesis with dual-            quality. In CVPR. 18320–18328.
+    part representation. In CVPR. 14193–14202.                                             Zhengyi Wang, Cheng Lu, Yikai Wang, Fan Bao, Chongxuan Li, Hang Su, and Jun
+Cheng Lu, Yuhao Zhou, Fan Bao, Jianfei Chen, Chongxuan Li, and Jun Zhu. 2022. Dpm-             Zhu. 2023a. ProlificDreamer: High-Fidelity and Diverse Text-to-3D Generation with
+    solver: A fast ode solver for diffusion probabilistic model sampling in around 10         Variational Score Distillation. arXiv preprint arXiv:2305.16213 (2023).
+    steps. Advances in Neural Information Processing Systems 35 (2022), 5775–5787.         Qi Wen, Shuang Li, Bingfeng Han, and Yi Yuan. 2021. Zigan: Fine-grained chinese
+Eric Luhman and Troy Luhman. 2021. Knowledge distillation in iterative generative              calligraphy font generation via a few-shot style transfer approach. In Proceedings of
+    models for improved sampling speed. arXiv preprint arXiv:2101.02388 (2021).                the 29th ACM International Conference on Multimedia. 621–629.
+Troy Luhman and Eric Luhman. 2020. Diffusion models for handwriting generation.            Zeqing Xia, Bojun Xiong, and Zhouhui Lian. 2023. Vecfontsdf: Learning to reconstruct
+    arXiv preprint arXiv:2011.06704 (2020).                                                    and synthesize high-quality vector fonts via signed distance functions. In CVPR.
+Simian Luo, Yiqin Tan, Longbo Huang, Jian Li, and Hang Zhao. 2023. Latent consistency         1848–1857.
+    models: Synthesizing high-resolution images with few-step inference. arXiv preprint    Yangchen Xie, Xinyuan Chen, Li Sun, and Yue Lu. 2021. Dg-font: Deformable generative
+    arXiv:2310.04378 (2023).                                                                   networks for unsupervised font generation. In CVPR. 5130–5140.
+Jian Ma, Mingjun Zhao, Chen Chen, Ruichen Wang, Di Niu, Haonan Lu, and Xiaodong            Shuai Yang, Wenjing Wang, and Jiaying Liu. 2020. Te141k: artistic text benchmark for
+    Lin. 2023. GlyphDraw: Learning to Draw Chinese Characters in Image Synthesis               text effect transfer. IEEE transactions on pattern analysis and machine intelligence 43,
+    Models Coherently. arXiv preprint arXiv:2303.17870 (2023).                                10 (2020), 3709–3723.
+Chenlin Meng, Robin Rombach, Ruiqi Gao, Diederik Kingma, Stefano Ermon, Jonathan           Yukang Yang, Dongnan Gui, Yuhui Yuan, Haisong Ding, Han Hu, and Kai Chen. 2023a.
+    Ho, and Tim Salimans. 2023. On distillation of guided diffusion models. In CVPR.           GlyphControl: Glyph Conditional Control for Visual Text Generation. arXiv preprint
+    14297–14306.                                                                               arXiv:2305.18259 (2023).
+Wei Pan, Anna Zhu, Xinyu Zhou, Brian Kenji Iwana, and Shilin Li. 2023. Few shot font       Zhenhua Yang, Dezhi Peng, Yuxin Kong, Yuyi Zhang, Cong Yao, and Lianwen Jin. 2023b.
+    generation via transferring similarity guided global style and quantization local          FontDiffuser: One-Shot Font Generation via Denoising Diffusion with Multi-Scale
+    style. In ICCV. 19506–19516.                                                               Content Aggregation and Style Contrastive Learning. arXiv preprint arXiv:2312.12142
+Song Park, Sanghyuk Chun, Junbum Cha, Bado Lee, and Hyunjung Shim. 2021a. Few-                (2023).
+    shot font generation with localized style representations and factorization. In Pro-   Tianwei Yin, Michaël Gharbi, Richard Zhang, Eli Shechtman, Fredo Durand, William T
+    ceedings of the AAAI conference on artificial intelligence, Vol. 35. 2393–2402.            Freeman, and Taesung Park. 2023. One-step Diffusion with Distribution Matching
+Song Park, Sanghyuk Chun, Junbum Cha, Bado Lee, and Hyunjung Shim. 2021b. Mul-                 Distillation. arXiv preprint arXiv:2311.18828 (2023).
+    tiple heads are better than one: Few-shot font generation with multiple localized      Jinshan Zeng, Qi Chen, Yunxin Liu, Mingwen Wang, and Yuan Yao. 2021. Strokegan: Re-
+    experts. In ICCV. 13900–13909.                                                             ducing mode collapse in chinese font generation via stroke encoding. In Proceedings
+Dustin Podell, Zion English, Kyle Lacey, Andreas Blattmann, Tim Dockhorn, Jonas                of the AAAI Conference on Artificial Intelligence, Vol. 35. 3270–3277.
+    Müller, Joe Penna, and Robin Rombach. 2023. Sdxl: Improving latent diffusion           Qinsheng Zhang and Yongxin Chen. 2022. Fast sampling of diffusion models with
+    models for high-resolution image synthesis. arXiv preprint arXiv:2307.01952 (2023).        exponential integrator. arXiv preprint arXiv:2204.13902 (2022).
+Ben Poole, Ajay Jain, Jonathan T Barron, and Ben Mildenhall. 2022. Dreamfusion:            Yexun Zhang, Ya Zhang, and Wenbin Cai. 2018. Separating style and content for
+   Text-to-3d using 2d diffusion. arXiv preprint arXiv:2209.14988 (2022).                      generalized style transfer. In CVPR. 8447–8455.
+
+
+
+
+ACM Trans. Graph., Vol. 43, No. 6, Article 176. Publication date: December 2024.
+

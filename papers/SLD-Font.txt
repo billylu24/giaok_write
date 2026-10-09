@@ -1,0 +1,866 @@
+                                                  Disentangle to Create: Structure-Level
+                                                Disentangled Diffusion Model for Few-Shot
+                                                        Chinese Font Generation
+
+                                                    Jie Li1,2 , Suorong Yang1,3 *, Jian Zhao4 , and Furao Shen1,2 *
+                                          1
+                                               State Key Laboratory for Novel Software Technology, Nanjing University, China
+                                                       2
+                                                          School of Artificial Intelligence, Nanjing University, China
+
+
+
+
+arXiv:2602.18874v1 [cs.CV] 21 Feb 2026
+                                              3
+                                                Department of Computer Science and Technology, Nanjing University, China
+                                                 4
+                                                   School of Electronic Science and Engineering, Nanjing University, China
+
+
+
+                                                 Abstract. Few-shot Chinese font generation aims to synthesize new
+                                                 characters in a target style using only a handful of reference images.
+                                                 Achieving accurate content rendering and faithful style transfer requires
+                                                 effective disentanglement between content and style. However, existing
+                                                 approaches achieve only feature-level disentanglement, allowing the gen-
+                                                 erator to re-entangle these features, leading to content distortion and
+                                                 degraded style fidelity. We propose the Structure-Level Disentangled Dif-
+                                                 fusion Model (SLD-Font), which receives content and style information
+                                                 from two separate channels. SimSun-style images are used as content
+                                                 templates and concatenated with noisy latent features as the input. Style
+                                                 features, extracted by a CLIP model from target-style images, are in-
+                                                 tegrated through cross-attention. Additionally, we train a Background
+                                                 Noise Removal module in the pixel space to remove background noise in
+                                                 complex stroke regions. Based on theoretical validation of disentangle-
+                                                 ment effectiveness, we introduce a parameter-efficient fine-tuning strat-
+                                                 egy that updates only the style-related modules. This allows the model
+                                                 to better adapt to new styles while avoiding overfitting to the refer-
+                                                 ence images’ content. We further introduce the Grey and OCR metrics
+                                                 to evaluate the content quality of generated characters. Experimental
+                                                 results show that SLD-Font achieves significantly higher style fidelity
+                                                 while maintaining comparable content accuracy to existing state-of-the-
+                                                 art methods.
+
+                                                 Keywords: Diffusion Models · Image Generation · Few-shot Chinese
+                                                 Font Generation
+
+
+                                         1     Introduction
+
+                                         Chinese font generation integrates linguistic expression with aesthetic design to
+                                         support personalized branding, historical media authenticity, and digital restora-
+                                         tion, promoting cultural creativity and artistic exploration in modern digital
+                                         contexts [25, 40]. However, unlike English letters, Chinese characters have com-
+                                         plex structures and exist in large quantities. The GB2312 standard includes 6,763
+2       J. Li et al.
+
+              a)                                                b)
+                   Style Info.                                                           Style Info.
+
+
+                                              Generator
+                                                                 Content Info.
+                                    Fusion
+                Content Info.
+                                                                                         Generator
+              c)
+                Style      Width Variation   Stroke Thickness        Stroke Connection   Stroke Structure
+              Sample
+             References
+
+               Target
+
+
+              Previous
+              Methods
+
+
+             SLD-Font
+              +PEFT
+
+
+Fig. 1: Existing methods, as illustrated in (a), are typically built upon a framework that
+achieves feature-level disentanglement. In contrast, our approach achieves structure-
+level disentanglement as shown in (b), yielding more robust content preservation and
+style controllability. As demonstrated in (c), our method produces Chinese characters
+with noticeably higher visual quality.
+
+
+commonly used characters, and the GB18030 standard covers over 27,000 [34,35].
+As a result, manually designing Chinese fonts is extremely time-consuming and
+labor-intensive. To this end, deep generative models have been increasingly
+adopted to synthesize Chinese characters in novel styles with minimal refer-
+ence samples [5, 11, 19, 23, 43]. Despite achieving promising results, they struggle
+to preserve content faithfully while maintaining high-quality style transfer.
+    Unlike style transfer [2, 3, 17], which focuses on transferring color and tex-
+ture, font generation demands much higher content fidelity, as even slight devi-
+ations can lead to content errors. More importantly, the style of Chinese char-
+acters is typically conveyed through attributes, such as width, stroke thick-
+ness, connectivity, and structure, making content-style disentanglement a key
+determinant of visual quality and usability. Most existing methods are based
+on GANs [4, 19, 22, 23], or diffusion models [5, 11, 43]. They typically adopt
+separate encoders to extract content and style features, which are then fused
+and fed into the generator or injected into the U-Net [28] via cross-attention
+in Transformer blocks [39]. However, these approaches only perform disentan-
+glement at the feature-level and lack explicit structure-level separation, leading
+to re-entanglement during generation. Consequently, as shown in Figure 1, such
+designs often produce Chinese characters with distorted structures or incomplete
+adaptation to the target style.
+    In this paper, we propose a Structure-Level Disentangled Diffusion Model
+for few-shot Chinese font generation (SLD-Font). As illustrated in Fig. 1(b),
+the generator is designed to process content information as its primary func-
+tion, while being guided by style information throughout the generation process,
+thereby achieving structure-level disentanglement between content and style.
+                                 Title Suppressed Due to Excessive Length       3
+
+Specifically, we concatenate the SimSun-style source image as content informa-
+tion with the noise-corrupted image along the channel dimension [30] and feed
+the concatenated tensor into the U-Net. For style information, we extract fea-
+tures from each reference image by the CLIP image encoder [42], and inject
+them into the U-Net via cross-attention in a token-like manner. In this design,
+the U-Net backbone focuses on content representation, while style information
+modulates the generation process, enabling effective structural-level disentan-
+glement. Following LDMs [27], we perform the diffusion process in the latent
+space of a VAE [38]. Considering that the VAE tends to introduce noise and
+artifacts [18, 26, 36], we further adopt a pixel-space Background Noise Removal
+(BNR) module to refine the outputs and improve the content fidelity. By disen-
+tangling content and style at the structure level, our method isolates the style-
+related parameters, enabling parameter-efficient fine-tuning (PEFT) [6, 10, 15].
+This allows the model to adapt to the target style with minimal updates, avoid-
+ing overfitting to content patterns, which is often seen in full fine-tuning, and
+making SLD-Font well-suited for few-shot scenarios.
+    Experimental results show that our proposed method outperforms existing
+methods across widely used evaluation metrics, such as ℓ1 loss and Structural
+Similarity Index (SSIM) [41], demonstrating strong performance in both visual
+quality and content accuracy. To further evaluate the stringent structural and
+semantic requirements of font generation, we introduce two tailored evaluation
+metrics: Grey, which quantifies background noise through grayscale histogram
+comparison, and an OCR-based accuracy metric for content recognition. Even
+under these more challenging evaluations, SLD-font achieves superior style con-
+sistency and precise content generation. In summary, our main contributions are
+as follows:
+ – We propose SLD-Font, in which content information is directly fed into the
+   U-Net, and style information is incorporated via cross-attention, improving
+   content and style fidelity through structure-level disentanglement.
+ – To mitigate artifacts introduced by the VAE, particularly in regions with
+   complex strokes, we design a Background Noise Removal (BNR) module
+   that operates in pixel space to suppress such noise in generated images.
+ – To the best of our knowledge, we are the first to introduce PEFT into few-
+   shot font generation based on structure-level disentanglement. Theoretically
+   and experimentally, fine-tuning on a few reference images enables more ac-
+   curate style capture while mitigating content overfitting.
+ – In addition to traditional evaluation metrics, we further introduce two content-
+   level indicators, Grey and OCR. Compared with SOTA methods using vari-
+   ous metrics, our approach achieves much higher style similarity while main-
+   taining comparable content accuracy.
+
+
+2   Related Work
+Font generation has evolved from manual design to automatic image synthesis
+using deep generative models. Early methods focused on single style transfer
+4       J. Li et al.
+
+with fully supervised learning, but these approaches were not scalable to large
+character sets [16, 40]. Recent advances have shifted towards few-shot font gen-
+eration (FFG), which aims to synthesize new fonts from a limited number of ref-
+erence images by disentangling style and content representations. Early methods
+used VAEs [18, 26], whereas current methods are mainly based on GAN [9] and
+diffusion [14, 32, 33].
+    VAE-based methods attempt to model content-style separation in latent
+space. SA-VAE [36] introduces a pair-wise optimization strategy to enable style
+inference from only one or few reference samples. EMD [45] proposes an architec-
+ture composed of style and content encoders, allowing transfer to unseen styles
+and contents. GAN-based models typically fuse content and style in a single
+generative stream. AGISNet [8] utilizes two collaboratively working decoders to
+generate the glyph shape simultaneously. MX-Font [23] innovates by employ-
+ing multiple localized experts to automatically extract diverse local styles, while
+LF-Font [22] introduces a low-rank factorization mechanism to decompose style
+into component and style factors. NTF [4] treats font generation as a continuous
+transformation task using a neural transformation field. CG-GAN [19] brings a
+new perspective by using a Component-Aware Module to provide fine-grained
+supervision. Fs-Font [37] enhances local accuracy with a cross-attention mecha-
+nism that aligns spatial regions in content images with corresponding local styles
+in the references. Diffusion-based methods have recently emerged as a promising
+alternative due to their stable training and superior visual fidelity. Diff-Font [11]
+is the first to apply diffusion models to FFG, leveraging component-level con-
+ditions such as strokes or radicals. FontDiffuser [43] introduces multi-scale con-
+tent aggregation and a style contrastive refinement module to improve local
+detail preservation. MSD-Font [5] decomposes the generation process into three
+stages: structure generation, style transfer, and refinement—mimicking human
+workflows. HFH-Font [21] further improves visual resolution and vectorization
+quality through component-aware conditioning. However, none of these methods
+achieve explicit structure-level content–style disentanglement, which is critical
+for maintaining character integrity and ensuring controllable style transfer.
+
+
+
+3   Methodology
+
+
+As shown in Figure 2, we propose SLD-Font, a Structure-level Disentangled
+Diffusion Model for efficient few-shot Chinese font generation. Built upon the
+Latent Diffusion Model (LDM) framework, SLD-Font separates content and style
+information through distinct pathways to achieve effective disentanglement. A
+Background Noise Removal (BNR) module is introduced at the pixel level to
+correct errors caused by latent–pixel conversion. Leveraging this disentangle-
+ment, we further adopt parameter-efficient fine-tuning to improve adaptability
+to unseen styles.
+                                                                                                                                           Title Suppressed Due to Excessive Length                                                                                                                                                                                         5
+
+                                                                                                                                             Add Noise
+
+
+                                                                                                                                U-Net
+                                                                                                                                                                                                                                                                                                                                                            Target image
+
+          VAE                                                                                                                                                                                                                                                                                                                                      VAE
+         encoder                                                                                                                                                                                                                                                                                                                                  encoder
+
+                     Concatenate
+                                                                                                                                                                                                                                                         VAE
+                                                                                                                                                                                                                                                        decoder
+
+                                                                                                                                                                                                                                                                                                                                      Binarize
+                                                                                                                                 Linear
+                                                                                                                                 CLIP
+      Source image
+                                                                                                                                                                                                                                                                                                                                                   BNR
+
+
+                                                                                                                                                                                                                                                                                                                                                            BNR output
+
+                                                                                                     Style reference images                                                                                                                                                                       Concatenate
+
+                                                      Pretrained Components
+                                                      Content-related Components
+                                                      Style-related Components                                                                                                                          Pixel-space Image                                                                                 Latent-space Image
+
+
+Fig. 2: Both source and target images are encoded into the latent space through a VAE
+encoder. Gaussian noise is added to the latent target representation during diffusion,
+producing a noisy latent image that is concatenated with the source and fed into
+the U-Net. Content and style are disentangled within the U-Net: content components
+capture structural patterns from the source image, while style components receive
+CLIP-extracted features from multiple style reference images and inject them via cross-
+attention. The U-Net output is decoded by the VAE, binarized, and refined in pixel
+space using the BNR module to produce clean and accurate glyphs.
+
+
+
+3.1    Preliminaries on Latent Diffusion Models
+
+
+A diffusion model learns to generate data by reversing the gradual noising pro-
+cess, step by step transforming random noise back into structured data [14, 33].
+SLD-Font is built upon the LDMs [27], which significantly reduce computational
+cost by performing the diffusion process in a compressed VAE [36,38] latent space
+while preserving high-quality generation. Given an image x in pixel space, it is
+first encoded into latent space by the VAE encoder as z0 = E(x). The forward
+process progressively adds noise to z0 until its distribution approaches a standard
+Gaussian distribution zT ∼ N (0, I):
+
+                                     z_t &= \sqrt {\alpha _t} z_{t-1} + \sqrt {1 - \alpha _t} \varepsilon , \quad \varepsilon \sim \mathcal {N}(\mathbf {0}, \mathbf {I}), \\ z_t &= \sqrt {\bar {\alpha }_t} z_0 + \sqrt {1 - \bar {\alpha }_t} \varepsilon , \quad \varepsilon \sim \mathcal {N}(\mathbf {0}, \mathbf {I}),\label {add_noise}
+                                                                                                                                                                                                                                                                                                                                                                           (2)
+
+                                                     t
+where αt is a time-dependent hyperparameter, ᾱt = Πi=1 αi and t ∈ {1, 2, . . . , T },
+with T denoting the total number of diffusion steps.
+   The reverse process starts by sampling pure noise zT ∼ N (0, I) and gradually
+denoises it to obtain z0 . Each step from zt to zt−1 is conditioned on z0 and
+6       J. Li et al.
+
+calculated as:
+
+                   q(z_{t-1} \mid z_t, z_0) &= \mathcal {N}(z_{t-1}; \tilde {\mu }_t(z_t, z_0), \tilde {\beta }_t \mathbf {I}), \label {reverse}\\ \tilde {\mu }_t(z_t, z_0) := \frac {\sqrt {\bar {\alpha }_{t-1}}(1 - \alpha _t)}{1 - \bar {\alpha }_t} &z_0 + \frac {\sqrt {\alpha _t}(1 - \bar {\alpha }_{t-1})}{1 - \bar {\alpha }_t} z_t, \tilde {\beta }_t := \frac {1 - \bar {\alpha }_{t-1}}{1 - \bar {\alpha }_t} (1 - \alpha _t),
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                               (4)
+
+The latent variable z0 is then passed through the VAE decoder D to obtain the
+reconstructed image in pixel space, denoted as x = D(z0 ).
+    To implement the reverse process described in Eq. (3), LDMs use the U-
+Net model ẑθ to predict z0 gradually. Following [5, 29], we adopt the strategy
+of directly predicting z0 , rather than predicting noise as in the original DDPMs
+[14]. Noise prediction improves diversity, whereas directly predicting z0 ensures
+a more deterministic process that better preserves content consistency in font
+generation. Given conditioning input c, the training objective of LDMs at time
+step t is defined as:
+
+                                                                             \mathcal {L}_{ldm}=\mathbb {E}_{t,x,\varepsilon } [\parallel z_0 - \hat {z}_\theta (z_t,c) \parallel _2^2],                                                                                                                                                                                                                                                       (5)
+
+The U-Net receives and processes conditioning information via cross-attention
+in transformer blocks [39].
+
+3.2   Structure-Level Disentangled Diffusion Model
+SLD-Font achieves structure-level disentanglement by introducing content and
+style information through two distinct pathways within the U-Net architecture.
+We formulate few-shot font generation as an image-to-image translation task
+conditioned on few reference images in the target style, aiming to transform
+source font images into the target style while preserving content accuracy. Sim-
+Sun is selected as the source font due to its wide availability across devices and its
+clear and well-defined character structure. Given a character pair (x, y), where x
+is the SimSun character and y is its corresponding character in the target style,
+we also provide a set of N target-style reference images r1 , r2 , . . . , rN to provide
+style information. The overall framework of SLD-Font is illustrated in Figure 2.
+     For content information, a pre-trained VAE encoder is used to encode x and
+y into the latent space, resulting in zx and the initial latent distribution zy0 .
+During training, we sample a time step t ∼ Uniform(1, . . . , T ) and add noise to
+zy0 following Eq. (2):
+
+                                                       z_y^t=\sqrt {\bar {\alpha }_t} z_y^0 + \sqrt {1 - \bar {\alpha }_t} \varepsilon , \quad \varepsilon \sim \mathcal {N}(\mathbf {0}, \mathbf {I}),                                                                                                                                                                                                                                        (6)
+
+Following [30], we concatenate the SimSun-style content image zx and the noisy
+target image zyt along the channel dimension as the input to the U-Net. The
+content image of a Chinese character clearly preserves its structural information.
+Using it as a template provides sufficient guidance for generating structurally
+accurate results.
+    For style information, we use a pre-trained CLIP model [42] to extract the
+style representation from each reference image, denoted as si = CLIP(ri ). This
+                                                                                         Title Suppressed Due to Excessive Length                                                                                                                                  7
+
+results in a style matrix s ∈ RN ×d , where d is the dimensionality of the style em-
+bedding. The style features s are injected into the U-Net through cross-attention
+in transformer blocks, allowing style conditioning during generation. This pro-
+cess resembles text prompts in text-to-image generation, except that our CLIP
+model treats all reference images equally, making the order of reference images
+irrelevant. Given the misalignment between CLIP’s pretraining objective and
+font generation [24, 42], we retrain the final projection layer to retain general
+visual representations while adapting to our task.
+    We adopt the strategy of predicting z0 , and the loss function is defined as:
+
+
+                          \hat {z}_y^0 &=\hat {z}_\theta (\text {concat}(z_y^t, z_x), s), \label {predict_x0}\\ \mathcal {L}_{ldm} &= \mathbb {E}_{t,(x,y),\{r_1,r_2,\dots ,r_N\},\varepsilon } [ \parallel z_y^0 - \hat {z}_y^0 \parallel _2^2], \label {loss}
+                                                                                                                                                                                                                                                                  (8)
+
+Let θ = θc ∪ θs denote the model parameters, corresponding to the content and
+style pathways highlighted in yellow and red in Figure 2, respectively. Content-
+related θc serves as the backbone for processing content spatial patterns, and
+θs adjusts channel expression through style modulation by cross-attention. This
+division of roles forms the basis of disentanglement. By isolating content and
+style through distinct input paths and attention mechanisms, SLD-Font achieves
+effective content-style disentanglement, enabling accurate content preservation
+and flexible style transfer.
+
+3.3   Background Noise Removal Module
+Since Latent Diffusion Models rely on a VAE to transform between latent and
+pixel spaces, they inevitably introduce some noise during decoding [18, 26, 38],
+as shown in the supplemental material. In regular text-to-image tasks, the noise
+is often masked by rich color. However, it becomes visible in font generation,
+especially around dense strokes on clean backgrounds. As illustrated in Figure 3,
+noise artifacts can be clearly observed in the densely stroked right part of the
+character “Ye” when directly decoded from the VAE. This noise is reflected in the
+grayscale distribution: in the target image, pixel intensities are concentrated near
+0 and 1, with only a small proportion of intermediate gray values. In contrast,
+the VAE output shows a significant accumulation of pixels near 1, corresponding
+to the undesired noise regions.
+    We propose the Background Noise Removal (BNR) module to address the
+background noise present in generated Chinese characters. As shown in Figure 3,
+although some noise exists, the overall grayscale tendency of the VAE output
+remains largely correct. Based on this observation, we convert the decoded image
+into a binary image and concatenate it with the SimSun source image x along the
+channel dimension. This combined input is then fed into the BNR module. The
+BNR module is implemented as a U-Net and outputs a noise-removed image:
+
+
+                        \tilde {y} = \text {BNR}(\text {Binarize}(\text {concat}(\mathcal {D}(\hat {z}_y^0)), x)),                                                                                                                                                (9)
+8       J. Li et al.
+
+                                                     VAE decoder output                                        Binary image
+
+
+
+
+                                                    BNR module output                                          Target image
+
+Fig. 3: The VAE output shows background noise in dense stroke areas, which is visible
+in the grayscale histogram. The BNR module effectively removes the noise.
+
+
+Since the BNR module is trained in pixel space, it allows us to incorporate edge
+and perceptual losses that are not feasible in latent space. Specifically, we apply
+a Sobel-based edge loss [7] and a VGG perceptual loss [31] for better stroke
+sharpness and visual quality. The overall loss function is defined as:
+
+              \mathcal {L}_{bnr} = \ell _1(\tilde {y}, y) &+ \lambda _1 \ell _1(\text {Sobel}(\tilde {y}),\text {Sobel}(y)) + \lambda _2 \text {VGG}(\tilde {y}, y), \label {loss-bnr}   (10)
+
+This setup enables the BNR module to effectively reduce background artifacts
+while preserving the content integrity of the generated characters. We train the
+BNR module based on the trained SLD-Font. It is worth noting that our SLD-
+Font adopts a training strategy that predicts zy0 , which means that at each
+diffusion time step, we can obtain an estimate of ẑy0 using Eq. (7). For clarity,
+we refer to SLD-Font as the default version with the BNR module.
+
+
+
+3.4   Parameter Efficient Fine-Tuning
+
+
+Model can better adapt to the target task or data distribution by fine-tuning
+with a small number of task-specific samples, thereby improving performance
+and generation quality [10, 29]. However, in the few-shot font generation, the
+available data for fine-tuning is limited to only few reference style images. Direct
+fine-tuning under such constraints can lead to overfitting. Although the model
+may better adapt to the style pattern, allowing it to generate images that closely
+match the target style, it also overfits to the content patterns of the reference
+characters, resulting in content distortions, especially when generating unseen
+characters.
+Theoretically Analysis SLD-Font employs structure-level disentanglement.
+The style information is injected into the U-Net through cross-attention mech-
+                                                                                                                                        Title Suppressed Due to Excessive Length                                                                                                                                                                                                                                                                                                                                                                     9
+
+anism, calculated as:
+
+                               Q = W_Q\,h(z_y^t,z_x), K = W_K\,s, V = W_V\,s,\nonumber \\ T=\frac {QK^\top }{\sqrt d}, A=\mathrm {softmax}(T), O=AV, \mathcal L=\mathcal L(O), \nonumber
+
+
+
+
+where h denotes modules before the cross-attention layer, s represents style in-
+formation extracted by CLIP, W_Q , W_K , and W_V are the projection matrices
+for the query, key, and value, respectively, d is the dimensionality of the hidden
+states, and \protect \mathcal  {L} represents the loss function associated with this layer. Gradients
+of the content and style conditions are:
+
+                                    G=\frac {\partial \mathcal L}{\partial O}, J_{\mathrm {softmax}}(A)=\mathrm {diag}(A)-AA^\top \nonumber \\ \frac {\partial \mathcal L}{\partial z_x} =\Big (\frac {\partial h}{\partial z_x}\Big )^{\!\top } W_Q^{\!\top }\, \frac {1}{\sqrt d}\; J_{\mathrm {softmax}}^{\!\top }\!\!\left ( G V^\top \right ) K,\\ \frac {\partial \mathcal L}{\partial s} = \frac {1}{\sqrt d}\,W_K^{\!\top }\Big (J_{\mathrm {softmax}}^{\!\top }\big (G V^\top \big )\Big )^{\!\top } Q \;+\; W_V^{\!\top }A^{\!\top }G,
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   (12)
+
+The optimization of the content channel zx involves K and V , since the atten-
+tion mechanism couples the content query Q with the style key K and value
+V through the softmax operation. However, K and V serve only as weighting
+terms during backpropagation, influencing the updates of parameters such as
+WQ and h, while the parameters associated with K and V themselves remain
+unchanged. Similarly, the optimization of the style channel s depends on Q only
+through attention weights. Therefore, gradient propagation preserves the dis-
+entanglement between content and style. When we fine-tune only style-related
+parameters, the content information participates in optimization but does not
+affect content-related parameters.
+    We further conducted a gradient analysis under three experimental settings:
+Seen Chars Seen Font (SCSF), Unseen Chars Seen Font (UCSF), and Seen Chars
+Unseen Font (SCUF) based on the model trained in Section 3.2. We compute
+the gradients of all parameters within a batch of 128 samples under each of
+the three settings. We categorize the parameters into four groups: (1) K and
+V projection matrix in Cross-Attention modules (KV), (2) Transformer Blocks
+(Trans_block), (3) the last layer of CLIP (Clip), and (4) other parameters cor-
+responding to content-related components (Others). It is worth noting that al-
+though the KV are part of the Trans_blocks, they directly receive style infor-
+mation and are therefore analyzed separately. Taking SCSF as the baseline, we
+evaluate the sensitivity of each parameter to content and style variations. For
+a given parameter  x , let its magnitude of gradient under the SCSF setting be
+denoted as  \text {G}(x) , and its magnitude of gradient under other settings as  \text {G}_{*}(x) .
+We define their ratio  \text {G}_{*}(x) / \text {G}(x)  as the parameter sensitivity metric, and re-
+port the mean sensitivity across each parameter group. The results are shown
+in Figure 4. Overall, the model exhibits higher sensitivity to unseen styles than
+to unseen characters. KV, Trans_block, and Clip exhibit higher sensitivity than
+10      J. Li et al.
+
+Others to unseen styles in SCUF. Clip and KV show greater responses as they
+directly encode and propagate style information, whereas the Trans_block plays
+a more auxiliary role in style adaptation. In contrast, for unseen characters in
+UCSF, the content-related components display higher sensitivity. At the same
+time, the Clip module shows a marked decrease in gradient magnitude compared
+with the unseen-style condition.
+
+
+
+
+Fig. 4: Results of gradient analysis. Style-related parameters are more sensitive to
+unseen styles, while content-related parameters are more sensitive to unseen content.
+
+
+
+    Based on this observation, we treat all parameters that are more sensitive
+to style, including the Transformer blocks and the last layer of CLIP, as style-
+related parameters θs , and other parameters as content-related θc . We adopt a
+parameter-efficient fine-tuning strategy (PEFT) [6, 20, 29], where only the style-
+related components θs are updated, while the content-related θc are frozen. This
+enables the model to better adapt to the target style while preserving the content
+structure. Given the limited number of reference images, we aim to construct
+as many training pairs as possible. Given N > 1 reference images, we randomly
+select one as the target and choose subsets from the remaining N −1 as reference
+inputs, resulting in 2N −1 −1 possible combinations. Thus, a total of N (2N −1 −1)
+unique training pairs can be constructed. During inference, we use all N reference
+images to guide generation.
+
+
+4     Experiment
+
+4.1   Experimental Settings
+
+Implementation Details. Closely following the implementation settings of [5],
+all font images are resized to 128 × 128 × 3, and the default number of reference
+images for few-shot generation is set to 8. The total number of diffusion steps
+is T = 1000. During training, each data sample consists of one SimSun source
+character image, one corresponding target-style character image, and 8 randomly
+selected non-target character images in the same target style as reference. The
+weights in Eq. (10) are set as λ1 = 1 and λ2 = 0.05. During fine-tuning, we train
+                                            Title Suppressed Due to Excessive Length                  11
+
+Table 1: Quantitative comparison under SCUF and UCUF settings across diverse
+evaluation metrics. Since Font-diff only supports SCUF, we do not report the results
+under UCUF. SCSF: Seen Chars Seen Font. UCUF: Unseen Chars Seen Font.
+
+                                      SCUF                             UCUF
+Model
+                       SSIM ↑ LPIPS↓ FID↓ L1↓ Grey↑ OCR↑ SSIM↑ LPIPS↓ FID↓ L1 ↓ Grey↑ OCR↑
+LF                     0.307   0.275   1.275 0.255 0.381 0.986   0.304   0.283   1.298 0.257 0.380 0.978
+MX                     0.319   0.256   0.671 0.249 0.285 1.000   0.321   0.259   0.689 0.246 0.283 0.999
+NTF                    0.359   0.250   0.623 0.229 0.376 0.997   0.352   0.257   0.631 0.232 0.373 0.995
+Font-diff (1shot)      0.298   0.270   4.087 0.254 0.518 0.949     -       -       -     -     -     -
+FontDiffuser (1shot)   0.347   0.265   2.770 0.237 0.984 1.000   0.341   0.270   2.621 0.240 0.983 0.999
+MSDFont                0.407   0.225   3.797 0.212 0.307 0.965   0.337   0.259   3.915 0.237 0.263 0.915
+MSDFont+FT             0.433   0.208   3.438 0.197 0.447 0.940   0.337   0.259   4.210 0.233 0.366 0.857
+SLD-Font (1shot)       0.381   0.231 1.718 0.227 0.990 0.999 0.352 0.245 1.734 0.239 0.990 0.998
+SLD-Font               0.452   0.202 0.997 0.199 0.995 0.996 0.394 0.224 1.010 0.219 0.995 0.994
+SLD-Font+PEFT          0.505   0.175 0.521 0.171 0.998 0.991 0.436 0.202 0.558 0.196 0.997 0.989
+
+
+
+
+the model separately for each font style for 80 epochs and report the results by
+averaging the evaluation metrics across all fonts.
+Datasets. Following prior works [5, 11], we collect 900 Chinese font styles from
+the Founder Type library, 840 for training (Seen Fonts) and the other 60 for
+evaluation (Unseen Fonts). During training, we randomly sample 800 Chinese
+characters from each seen font as the training set. For testing, 200 characters
+are randomly selected from the training set as seen content (Seen Chars), and
+another 200 unseen characters as unseen content (Unseen Chars). We evaluate
+in two scenarios: Seen Chars with Unseen Fonts (SCUF) and Unseen Chars with
+Unseen Fonts (UCUF).
+Evaluation Metrics. We evaluate our method from both style and content per-
+spectives. For style evaluation, we use several metrics: pixel-wise L1 loss, SSIM
+[41] for structural similarity, LPIPS [44] for perceptual quality, and FID [13] to
+assess distribution-level similarity. For content, inspired by Figure 3, we intro-
+duce a metric, Grey, which computes the cosine similarity between the grayscale
+histograms of the generated and target images to reflect background noise and
+structural consistency. We evaluate character correctness using pretrained Pad-
+dleOCR [1] and a ResNet-based OCR model [12] trained on our dataset. A
+character is considered correct if recognized by either model.
+
+4.2     Comparison with State-of-the-arts
+We compare SLD-Font with various methods, including MX [23], LF [22], NTF
+[4], Font-diff [11], FontDiffuser [43], and MSDFont [5]. FontDiffuser and Font-diff
+are one-shot methods. We also evaluate SLD-Font in the one-shot setting without
+retraining by randomly selecting a reference image as input. It is worth noting
+that MSDFont, an LDM–based approach, integrates the concatenated features
+from the structure and style encoders into the U-Net through cross-attention.
+For fairness, all methods are evaluated using the same settings.
+     As shown in Table 1, under both settings, SLD-Font consistently achieves
+the best performance compared to other methods. This shows that our method
+12            J. Li et al.
+
+can generate characters closer to the ground truth, with better perceptual qual-
+ity and stronger preservation of character structure. Building on structure-level
+disentanglement, the parameter-efficient fine-tuned version, SLD-Font+PEFT,
+greatly improves style consistency, achieving the best performance across all style
+metrics. For content-related metrics, Grey reaches 0.998, and OCR remains high
+at 0.991. Although content performance shows a slight decline, style-related per-
+formance improves significantly. This demonstrates that our parameter-efficient
+strategy successfully adapts to new styles while largely preserving content in-
+tegrity, validating the benefit of structure-level disentanglement. Under the UCUF
+setting, results are similar to those observed in SCUF, with SLD-Font+PEFT
+achieving superior overall performance compared to existing approaches. Since
+PEFT only optimizes style information and lacks adaptation to content, the
+improvement is less significant than in the SCUF setting. For comparison, we
+also fine-tune MSDFont (MSDFont+FT). In the SCUF setting, although MSD-
+Font+FT shows improved style metrics, its content performance drops. In the
+UCUF setting, the overall performance even degrades, highlighting the impor-
+tance of structure-level content–style disentanglement, especially OCR, indicat-
+ing that the model has overfitted to the content.
+
+
+4.3        Visualization Analysis
+
+
+
+         Senario                                SCUF                                                          UCUF
+      Sample Ref
+              LF
+
+             MX
+
+            NTF
+
+     FontDiffuser
+
+        Font-diff
+
+       MSDFont
+
+       SLD-Font
+
+ SLD-Font+PEFT
+
+           Target
+
+                    Simple    Width       Stroke     Stroke    Stroke     Hard    Simple    Width       Stroke     Stroke      Stroke     Hard
+           Style
+                    Cases    Variation   Thickness Connection Structure   Cases   Cases    Variation   Thickness Connection   Structure   Cases
+
+
+
+Fig. 5: Visualization of Chinese character generation results under SCUF and UCUF
+settings, illustrating two fonts for each of six representative style characteristics. Prob-
+lematic generations are highlighted with red circles.
+
+
+
+    To better understand the effectiveness of our method, we visualize the gener-
+ation results in Figure 5. It can be seen that all models accurately capture both
+the content and style of the target font, while LF and MX show background
+noise artifacts. FontDiffuser fails to handle narrow-width fonts, while SLD-Font
+struggles with flat-shaped fonts. However, after applying PEFT, the generated
+fonts closely match the target style. Although all methods perform well on thin
+                                  Title Suppressed Due to Excessive Length      13
+
+fonts, LF, NTF, FontDiffuser, and Font-diff exhibit noise in complex stroke re-
+gions when generating thicker fonts. In terms of stroke connection, only SLD-
+Font+PEFT successfully reproduces the correct connectivity consistent with the
+target font. Regarding stroke structure, the rightmost example shows a font with
+shadowed strokes. Font-diff captures the stylistic shadowing but fails to produce
+the correct image. SLD-Font generates the correct character structure, though
+the shadow effect is less pronounced. SLD-Font+PEFT achieves the best bal-
+ance, accurately preserving both structure and stylistic detail. Hard cases involve
+semi-cursive and cursive scripts, which inherently deviate from standard stroke
+structures. Most baseline methods prioritize structural fidelity, thereby failing
+to imitate the target style closely. SLD-Font+PEFT generates outputs that best
+resemble the style of the reference.
+
+
+
+
+                  Fig. 6: Visualization of handwritten style test.
+
+
+    We have evaluated SLD-Font’s performance on 60 unseen typefaces. However,
+all of these are printed fonts, which are generally simpler in style compared to
+handwritten ones. Handwritten fonts exhibit higher variability, posing a greater
+challenge for accurate style adaptation. In this section, we use handwritten char-
+acters as references and evaluate the model on both seen and unseen characters.
+As shown in Figure 6, the results demonstrate that SLD-Font+PEFT effectively
+captures the reference style, producing characters visually consistent with the
+handwritten examples, which indicates strong style fitting capability.
+
+
+4.4   Efficiency Analysis
+
+We calculate the time required for fine-tuning to a single font style. As shown in
+Table 2, although the fine-tuning strategies differ substantially in design and the
+amount of trainable parameters, their actual fine-tuning times remain surpris-
+ingly close. This is because the major computational cost lies in data processing
+and latent encoding rather than parameter updates. Therefore, the time costs
+of our method remain at a low level.
+14      J. Li et al.
+
+Table 2: Comparison of different fine-tuning strategies in terms of parameter size and
+fine-tuning time for a single font style. Experiments are conducted on a single NVIDIA
+V100 GPU.
+
+                       Strategy         CLIP    KV     ALL PEFT
+                       Num. Trainable 0.79M 2.36M 34.67M 7.30M
+                       Time (s)       116.99 120.97 126.9 121.66
+
+
+
+4.5   Ablation Study
+
+In this section, we conduct ablation studies on SLD-Font, focusing on the BNR
+module and fine-tuning mechanism. The experiments are carried out under the
+UCUF setting. Ablation results are presented in Table 3.
+
+
+Table 3: Effect of the component in our method. “CLIP” tunes the last CLIP layer,
+“KV” the K/V projections, “ALL” all parameters, and “PEFT” applies parameter-
+efficient fine-tuning.
+
+      Strategy BNR           SSIM↑ LPIPS↓      Fid↓    L1 ↓    Grey↑    OCR↑
+         No             ✗     0.377   0.222    2.189   0.220   0.896    0.993
+        CLIP            ✗     0.376   0.222    2.187   0.220   0.896    0.992
+         KV             ✗     0.390   0.214    1.781   0.212   0.898    0.994
+         ALL            ✗     0.388   0.210    2.164   0.210   0.510    0.973
+        PEFT            ✗     0.423   0.202    1.719   0.196   0.779    0.986
+         No             ✓    0.394    0.224    1.010   0.219   0.995    0.994
+        CLIP            ✓    0.395    0.224    1.035   0.219   0.995    0.994
+         KV             ✓    0.410    0.217    0.735   0.211   0.997    0.996
+         ALL            ✓    0.405    0.215    0.642   0.208   0.997    0.984
+        PEFT            ✓    0.436    0.202    0.558   0.196   0.997    0.989
+
+
+
+     The BNR module brings clear improvements in content quality by effectively
+removing noise from the original images and mitigating the content degradation
+caused by fine-tuning. As a result of improved content consistency, most style
+metrics have improved as well.
+     We compare four fine-tuning strategies: updating the last CLIP layer , adjust-
+ing K/V projections in cross-attention, tuning all parameters, and parameter-
+efficient fine-tuning that updates style-related components. The CLIP strategy
+yields only minor gains over the baseline, indicating that improvements at the
+feature level remain limited. In contrast, KV, ALL, and PEFT markedly improve
+stylization quality. KV achieves moderate style enhancement with minimal con-
+tent degradation, while ALL and PEFT introduce varying degrees of content loss,
+with ALL exhibiting a greater loss but fewer improvements in style. By freezing
+content-related parameters, PEFT preserves strong content fidelity while sig-
+                                Title Suppressed Due to Excessive Length    15
+
+nificantly boosting style performance, making it the most effective strategy in
+few-shot scenarios.
+
+
+5   Conclusion
+In this paper, we introduce SLD-Font, a structure-level disentangled diffusion
+model for few-shot Chinese font generation. By separating content and style
+pathways within the generator and integrating CLIP-based style guidance, our
+model achieves effective structure-level disentanglement. To further enhances
+visual clarity, a BNR module is introduced. Meanwhile, a parameter-efficient
+fine-tuning strategy enables rapid adaptation to new styles without overfitting
+to content patterns of reference images in few-shot setting. Extensive experi-
+ments demonstrate that SLD-Font preserves content integrity and significantly
+improves style fidelity over existing diffusion-based methods.
+16      J. Li et al.
+
+References
+ 1. Authors, P.: Paddleocr, awesome multilingual ocr toolkits based on paddlepaddle.
+    https://github.com/PaddlePaddle/PaddleOCR (2020)
+ 2. Chung, J., Hyun, S., Heo, J.P.: Style injection in diffusion: A training-free approach
+    for adapting large-scale diffusion models for style transfer. In: Proceedings of the
+    IEEE/CVF conference on computer vision and pattern recognition. pp. 8795–8805
+    (2024)
+ 3. Chung, J., Hyun, S., Heo, J.P.: Style injection in diffusion: A training-free approach
+    for adapting large-scale diffusion models for style transfer. In: Proceedings of the
+    IEEE/CVF conference on computer vision and pattern recognition. pp. 8795–8805
+    (2024)
+ 4. Fu, B., He, J., Wang, J., Qiao, Y.: Neural transformation fields for arbitrary-styled
+    font generation. In: Proceedings of the IEEE/CVF conference on computer vision
+    and pattern recognition. pp. 22438–22447 (2023)
+ 5. Fu, B., Yu, F., Liu, A., Wang, Z., Wen, J., He, J., Qiao, Y.: Generate like experts:
+    Multi-stage font generation by incorporating font transfer process into diffusion
+    models. In: Proceedings of the IEEE/CVF Conference on Computer Vision and
+    Pattern Recognition. pp. 6892–6901 (2024)
+ 6. Fu, Z., Yang, H., So, A.M.C., Lam, W., Bing, L., Collier, N.: On the effectiveness of
+    parameter-efficient fine-tuning. In: Proceedings of the AAAI conference on artificial
+    intelligence. vol. 37, pp. 12799–12807 (2023)
+ 7. Gao, W., Zhang, X., Yang, L., Liu, H.: An improved sobel edge detection. In:
+    2010 3rd International conference on computer science and information technology.
+    vol. 5, pp. 67–71. IEEE (2010)
+ 8. Gao, Y., Guo, Y., Lian, Z., Tang, Y., Xiao, J.: Artistic glyph image synthesis via
+    one-stage few-shot learning. ACM Transactions on Graphics (ToG) 38(6), 1–12
+    (2019)
+ 9. Goodfellow, I.J., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair,
+    S., Courville, A., Bengio, Y.: Generative adversarial nets. Advances in neural in-
+    formation processing systems 27 (2014)
+10. Han, Z., Gao, C., Liu, J., Zhang, J., Zhang, S.Q.: Parameter-efficient fine-tuning for
+    large models: A comprehensive survey. Transactions on Machine Learning Research
+    2024 (2024)
+11. He, H., Chen, X., Wang, C., Liu, J., Du, B., Tao, D., Yu, Q.: Diff-font: Diffu-
+    sion model for robust one-shot font generation. International Journal of Computer
+    Vision 132(11), 5372–5386 (2024)
+12. He, K., Zhang, X., Ren, S., Sun, J.: Deep residual learning for image recognition. In:
+    Proceedings of the IEEE conference on computer vision and pattern recognition.
+    pp. 770–778 (2016)
+13. Heusel, M., Ramsauer, H., Unterthiner, T., Nessler, B., Hochreiter, S.: Gans trained
+    by a two time-scale update rule converge to a local nash equilibrium. Advances in
+    neural information processing systems 30 (2017)
+14. Ho, J., Jain, A., Abbeel, P.: Denoising diffusion probabilistic models. Advances in
+    neural information processing systems 33, 6840–6851 (2020)
+15. Houlsby, N., Giurgiu, A., Jastrzebski, S., Morrone, B., De Laroussilhe, Q., Ges-
+    mundo, A., Attariyan, M., Gelly, S.: Parameter-efficient transfer learning for nlp.
+    In: International conference on machine learning. pp. 2790–2799. PMLR (2019)
+16. Isola, P., Zhu, J.Y., Zhou, T., Efros, A.A.: Image-to-image translation with condi-
+    tional adversarial networks. In: Proceedings of the IEEE conference on computer
+    vision and pattern recognition. pp. 1125–1134 (2017)
+                                     Title Suppressed Due to Excessive Length           17
+
+17. Jeong, J., Kwon, M., Uh, Y.: Training-free style transfer emerges from h-space in
+    diffusion models. arXiv preprint arXiv:2303.15403 3(1), 2 (2023)
+18. Kingma, D.P., Welling, M.: Auto-encoding variational bayes. arXiv preprint
+    arXiv:1312.6114 (2013)
+19. Kong, Y., Luo, C., Ma, W., Zhu, Q., Zhu, S., Yuan, N., Jin, L.: Look closer to
+    supervise better: One-shot font generation via component-based discriminator. In:
+    Proceedings of the IEEE/CVF conference on computer vision and pattern recog-
+    nition. pp. 13482–13491 (2022)
+20. Kumari, N., Zhang, B., Zhang, R., Shechtman, E., Zhu, J.Y.: Multi-concept cus-
+    tomization of text-to-image diffusion. In: Proceedings of the IEEE/CVF conference
+    on computer vision and pattern recognition. pp. 1931–1941 (2023)
+21. Li, H., Lian, Z.: Hfh-font: Few-shot chinese font synthesis with higher quality, faster
+    speed, and higher resolution. ACM Transactions on Graphics (TOG) 43(6), 1–16
+    (2024)
+22. Park, S., Chun, S., Cha, J., Lee, B., Shim, H.: Few-shot font generation with local-
+    ized style representations and factorization. In: Proceedings of the AAAI conference
+    on artificial intelligence. vol. 35, pp. 2393–2402 (2021)
+23. Park, S., Chun, S., Cha, J., Lee, B., Shim, H.: Multiple heads are better than one:
+    Few-shot font generation with multiple localized experts. In: Proceedings of the
+    IEEE/CVF international conference on computer vision. pp. 13900–13909 (2021)
+24. Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G.,
+    Askell, A., Mishkin, P., Clark, J., et al.: Learning transferable visual models from
+    natural language supervision. In: International conference on machine learning. pp.
+    8748–8763. PmLR (2021)
+25. Ren, Z., Pan, Y., Chen, J., Zhao, L., Liao, M., Qian, X., Gong, W.: A survey on
+    deep learning-based chinese font style transfer. IEEE Transactions on Artificial
+    Intelligence (2025)
+26. Rezende, D.J., Mohamed, S., Wierstra, D.: Stochastic backpropagation and ap-
+    proximate inference in deep generative models. In: Proceedings of the 31st Inter-
+    national Conference on Machine Learning (ICML). pp. 1278–1286 (2014)
+27. Rombach, R., Blattmann, A., Lorenz, D., Esser, P., Ommer, B.: High-resolution
+    image synthesis with latent diffusion models. In: Proceedings of the IEEE/CVF
+    conference on computer vision and pattern recognition. pp. 10684–10695 (2022)
+28. Ronneberger, O., Fischer, P., Brox, T.: U-net: Convolutional networks for biomed-
+    ical image segmentation. In: Medical image computing and computer-assisted
+    intervention–MICCAI 2015: 18th international conference, Munich, Germany, Oc-
+    tober 5-9, 2015, proceedings, part III 18. pp. 234–241. Springer (2015)
+29. Ruiz, N., Li, Y., Jampani, V., Pritch, Y., Rubinstein, M., Aberman, K.: Dream-
+    booth: Fine tuning text-to-image diffusion models for subject-driven generation. In:
+    Proceedings of the IEEE/CVF conference on computer vision and pattern recog-
+    nition. pp. 22500–22510 (2023)
+30. Saharia, C., Ho, J., Chan, W., Salimans, T., Fleet, D.J., Norouzi, M.: Image super-
+    resolution via iterative refinement. IEEE transactions on pattern analysis and ma-
+    chine intelligence 45(4), 4713–4726 (2022)
+31. Simonyan, K., Zisserman, A.: Very deep convolutional networks for large-scale
+    image recognition. arXiv preprint arXiv:1409.1556 (2014)
+32. Song, J., Meng, C., Ermon, S.: Denoising diffusion implicit models. In: International
+    Conference on Learning Representations (2021)
+33. Song, Y., Ermon, S.: Generative modeling by estimating gradients of the data
+    distribution. Advances in neural information processing systems 32 (2019)
+18      J. Li et al.
+
+34. Standardization Administration of China: Code of chinese graphic character set
+    for information interchange—primary set. GB 2312-1980 (National Standard of
+    the People’s Republic of China) (1980)
+35. Standardization Administration of China: Information technology—chinese coded
+    character set. GB 18030-2022 (National Standard of the People’s Republic of
+    China) (2022)
+36. Sun, D., Ren, T., Li, C., Su, H., Zhu, J.: Learning to write stylized chinese char-
+    acters by reading a handful of examples. In: Proceedings of the Twenty-Seventh
+    International Joint Conference on Artificial Intelligence. pp. 920–927. International
+    Joint Conferences on Artificial Intelligence Organization (2018)
+37. Tang, L., Cai, Y., Liu, J., Hong, Z., Gong, M., Fan, M., Han, J., Liu, J., Ding, E.,
+    Wang, J.: Few-shot font generation by learning fine-grained local styles. In: Pro-
+    ceedings of the IEEE/CVF conference on computer vision and pattern recognition.
+    pp. 7895–7904 (2022)
+38. Van Den Oord, A., Vinyals, O., et al.: Neural discrete representation learning.
+    Advances in neural information processing systems 30 (2017)
+39. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A.N., Kaiser,
+    Ł., Polosukhin, I.: Attention is all you need. Advances in neural information pro-
+    cessing systems 30 (2017)
+40. Wang, L., Liu, Y., Sharum, M.Y., Yaako, R.B., Kasmiranm, K.A., Wang, C.: Deep
+    learning for chinese font generation: A survey. Expert Systems with Applications
+    p. 127105 (2025)
+41. Wang, Z., Bovik, A.C., Sheikh, H.R., Simoncelli, E.P.: Image quality assessment:
+    from error visibility to structural similarity. IEEE transactions on image processing
+    13(4), 600–612 (2004)
+42. Yang, A., Pan, J., Lin, J., Men, R., Zhang, Y., Zhou, J., Zhou, C.: Chinese clip: Con-
+    trastive vision-language pretraining in chinese. arXiv preprint arXiv:2211.01335
+    (2022)
+43. Yang, Z., Peng, D., Kong, Y., Zhang, Y., Yao, C., Jin, L.: Fontdiffuser: One-shot
+    font generation via denoising diffusion with multi-scale content aggregation and
+    style contrastive learning. In: Proceedings of the AAAI conference on artificial
+    intelligence. vol. 38, pp. 6603–6611 (2024)
+44. Zhang, R., Isola, P., Efros, A.A., Shechtman, E., Wang, O.: The unreasonable
+    effectiveness of deep features as a perceptual metric. In: Proceedings of the IEEE
+    conference on computer vision and pattern recognition. pp. 586–595 (2018)
+45. Zhang, Y., Zhang, Y., Cai, W.: A unified framework for generalizable style transfer:
+    Style and content separation. IEEE Transactions on Image Processing 29, 4085–
+    4098 (2020)
+

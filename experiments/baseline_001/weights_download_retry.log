@@ -1,0 +1,3 @@
+WEIGHT OK: ckpt/content_encoder.pth
+WEIGHT OK: ckpt/unet.pth
+WEIGHT OK: ckpt/style_encoder.pth

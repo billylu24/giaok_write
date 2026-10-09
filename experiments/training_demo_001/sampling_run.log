@@ -1,0 +1,39 @@
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Loading official models...
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:88: FutureWarning: Accessing config attribute `style_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'style_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.style_encoder'.
+  style_img_feature, _, style_residual_features = self.style_encoder(style_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:94: FutureWarning: Accessing config attribute `content_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'content_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.content_encoder'.
+  content_img_feture, content_residual_features = self.content_encoder(content_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:97: FutureWarning: Accessing config attribute `content_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'content_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.content_encoder'.
+  style_content_feature, style_content_res_features = self.content_encoder(style_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:102: FutureWarning: Accessing config attribute `unet` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'unet' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.unet'.
+  out = self.unet(
+Load the down block  DownBlock2D
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  DownBlock2D
+Load the up block  UpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  UpBlock2D
+Param count for Ds initialized parameters: 20591296
+Get CG-GAN Style Encoder!
+Param count for Ds initialized parameters: 1187008
+Get CG-GAN Content Encoder!
+{"character": "潮", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZGuanJKSJW/FZGuanJKSJW+氮.jpg", "style_index": 0, "seed": 123, "seconds": 0.6029799190000631, "file": "outputs/U6F6E_style0_seed123.png", "sha256": "d413d4a9f7f0ea85be092a91f576eccb4838ac6bd242187f62b56ae3093d6173"}
+{"character": "潮", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZOuYHGXSJW/FZOuYHGXSJW+氮.jpg", "style_index": 1, "seed": 123, "seconds": 0.6063442070153542, "file": "outputs/U6F6E_style1_seed123.png", "sha256": "4331191261e797567f3cfb60d89df32884c8930c0747f222d3e01204829a2323"}
+{"character": "潮", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZZCHJW/FZZCHJW+氮.jpg", "style_index": 2, "seed": 123, "seconds": 0.6014659589855, "file": "outputs/U6F6E_style2_seed123.png", "sha256": "846e3c3f3fc7ca3083b4f0df16653f428dd188e10f50e570a272ecec385e27c7"}
+{"character": "舶", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZGuanJKSJW/FZGuanJKSJW+氮.jpg", "style_index": 0, "seed": 124, "seconds": 0.602550625015283, "file": "outputs/U8236_style0_seed124.png", "sha256": "f7d8d898acab80c8fdc336d09bde2b8e8ea024f1a0759e19d8e7fc8d3567f8c3"}
+{"character": "舶", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZOuYHGXSJW/FZOuYHGXSJW+氮.jpg", "style_index": 1, "seed": 124, "seconds": 0.6034581150161102, "file": "outputs/U8236_style1_seed124.png", "sha256": "fa0e22e4f94ad61db9cad004cdc5b18f73cf3b2bb11bf1d182aae51a5db47d71"}
+{"character": "舶", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZZCHJW/FZZCHJW+氮.jpg", "style_index": 2, "seed": 124, "seconds": 0.6023125140054617, "file": "outputs/U8236_style2_seed124.png", "sha256": "a6d274b298a37ee67b7336936e0ba8b2d549d2b7157ec4ed82f2c011e642abb3"}
+{"character": "镀", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZGuanJKSJW/FZGuanJKSJW+氮.jpg", "style_index": 0, "seed": 125, "seconds": 0.6020757049845997, "file": "outputs/U9540_style0_seed125.png", "sha256": "9840d63889309b2e66b85b993a5cf25ea918974815889076dc05c32539a93d3f"}
+{"character": "镀", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZOuYHGXSJW/FZOuYHGXSJW+氮.jpg", "style_index": 1, "seed": 125, "seconds": 0.6047623180202208, "file": "outputs/U9540_style1_seed125.png", "sha256": "d9186cc9b4026e49e0e88dcdce26656105e5d8d5afeff148fe0b7e105c73a062"}
+{"character": "镀", "reference": "vendor/FontDiffuser/data_examples/train/TargetImage/FZZCHJW/FZZCHJW+氮.jpg", "style_index": 2, "seed": 125, "seconds": 0.6054835850081872, "file": "outputs/U9540_style2_seed125.png", "sha256": "1cb40e5bb5960c453d329d589a12d8783adb9f20a3108e40d787eb71423ff9da"}
+COMPLETE {"status": "completed", "kind": "sampling_after_1000_step_demo_training", "characters": 3, "references": 3, "generated_comparison_images": 9, "official_example_images": 1, "repeat_images": 1, "total_generated_images": 11, "mean_sampling_seconds": 0.6034925496723089, "min_sampling_seconds": 0.6014659589855, "max_sampling_seconds": 0.6063442070153542, "official_example_seconds": 1.0420465559873264, "repeat_seconds": 0.6048703530104831, "repeat_bitwise_equal": true, "load_seconds": 1.08402552298503, "peak_allocated_gpu_bytes": 576875008, "peak_reserved_gpu_bytes": 660602880, "weight_checksums": {"unet": "5c0a27f7a472f1ac7e11469364b4159e33dd7f45d4630da6f3a88dd1a131195b", "style_encoder": "f15241bbb986a188dafe4b59c35400568b4dbc586d3379d816f7ad2c0530987e", "content_encoder": "ca0461f28338257ac91acf271801c067dc503c53dd07333607c8c35390fe4fe3"}, "content_accuracy": null, "style_score": null, "trained_on_CASIA_here": false, "limitations": ["Training example styles and characters; not a held-out test.", "12 target images are insufficient to train a general model.", "No personal handwriting, CASIA or reliable OCR/FID/HWD evaluation."]}

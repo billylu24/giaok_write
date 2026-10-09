@@ -1,0 +1,756 @@
+                           This ICCV paper is the Open Access version, provided by the Computer Vision Foundation.
+                                         Except for this watermark, it is identical to the accepted version;
+                                   the final published version of the proceedings is available on IEEE Xplore.
+
+
+
+
+Beyond Isolated Words: Diffusion Brush for Handwritten Text-Line Generation
+
+    Gang Dai1 ,* Yifan Zhang2,3∗ , Yutao Qin1∗ , Qiangya Guo1 , Shuangping Huang1,4†, Shuicheng Yan3
+                                  1
+                                    South China University of Technology
+                 2
+                   MiroMind AI National University of Singapore 4 Pazhou Laboratory
+                                  3
+
+            eedaigang@mail.scut.edu.cn, yifan.zhang@miromind.ai, eehsp@scut.edu.cn
+
+
+                                                                          9HUWLFDO
+                                                                           YLHZ
+                             Abstract
+
+Existing handwritten text generation methods primarily fo-                                'LVWLQFW
+                                                                         +RUL]RQWDO                                   6DPH
+cus on isolated words. However, realistic handwritten text                 YLHZ
+demands attention not only to individual words but also                               D 5HDOWH[WOLQHV   E $VVHPEOHGZLWKJHQHUDWHGZRUGV
+to the relationships between them, such as vertical align-
+ment and horizontal spacing. Therefore, generating en-               Figure 1. Comparison of handwritten text-lines (a) written by real
+                                                                     writers, and (b) assembled with isolated words generated from
+tire text line emerges as a more promising and compre-
+                                                                     One-DM [7]. The latter one applies ﬁxed inter-word spacing due
+hensive task. However, this task poses signiﬁcant chal-              to the lack of spacing information in generated words. Red lines
+lenges, including the accurate modeling of complex style             indicate the baseline (i.e., the reference line at the bottom of the
+patterns—encompassing both intra- and inter-word rela-               characters), while blue lines highlight word spacing.
+tionships—and maintaining content accuracy across nu-
+                                                                     images at the word level, with few efforts [9, 23] exploring
+merous characters. To address these challenges, we pro-
+                                                                     the generation of complete text lines. To bridge this gap,
+pose DiffBrush, a novel diffusion-based model for hand-
+                                                                     our work focuses on high-quality handwritten text-line gen-
+written text-line generation. Unlike existing methods, Diff-
+                                                                     eration with better control over both style and content.
+Brush excels in both style imitation and content accuracy
+                                                                         Most previous state-of-the-art methods [7, 12, 40, 44]
+through two key strategies: (1) content-decoupled style
+                                                                     focus on handwritten word generation by using reference
+learning, which disentangles style from content to better
+                                                                     images from writers as style inputs and conditioning on
+capture intra-word and inter-word style patterns by using
+                                                                     character-wise labels or images for content. This allows for
+column- and row-wise masking; and (2) multi-scale content
+                                                                     the synthesis of handwritten words with controllable styles
+learning, which employs line and word discriminators to
+                                                                     and speciﬁc content. However, as shown in Figure 1, gen-
+ensure global coherence and local accuracy of textual con-
+                                                                     erating text at the word level cannot effectively capture the
+tent. Extensive experiments show that DiffBrush excels in
+                                                                     cohesive style of a complete text line: (1) Humans generally
+generating high-quality text-lines, particularly in style re-
+                                                                     maintain consistent vertical alignment across words, while
+production and content preservation. Code is available at
+                                                                     synthesized words often exhibit arbitrary vertical position-
+https://github.com/dailenson/DiffBrush
+                                                                     ing. (2) Different writers have unique word spacing charac-
+                                                                     teristics that are often lost in isolated word generation.
+                                                                         Direct approaches for text-line generation are relatively
+1. Introduction                                                      limited, with two notable GAN-based methods proposed.
+Handwritten text generation aims to automatically synthe-            TS-GAN [9] optimizes a global content recognition loss
+size realistic handwritten text images that visually convey a        based on the entire generated text-line image, primarily
+user’s personal writing style (e.g., text slant, stroke width,       guiding content learning while implicitly inﬂuencing style
+ligatures) while ensuring the content readability. This task         learning. CSA-GAN [23], in contrast, leverages both a con-
+has broad applications, including assisting individuals with         tent recognition loss and a writer classiﬁcation loss com-
+writing difﬁculties, accelerating handwritten font design,           puted from the generated text-line image, thus better mod-
+and enriching data for text recognizer. Most existing meth-          eling style through writer identity supervision. However,
+ods [1, 3, 7, 11, 12, 35, 44] focus on generating handwritten        both methods suffer from two key limitations: 1) Ineffec-
+                                                                     tive style extraction: Since both methods jointly optimize
+  * Authors contributed equally.                                     content and style from the same model output, the two as-
+  † Corresponding author                                             pects interfere with each other, preventing effective learn-
+
+
+
+                                                                 19054
+                                                                             style from content, enabling more accurate and independent
+          D 6W\OHUHIHUHQFH               E 5DQGRPPDVNLQJ                style representation in handwritten text-line generation.
+                                                                                Multi-scale content learning seeks to enhance content ac-
+       F &ROXPQZLVHPDVNLQJ              G 5RZZLVHPDVNLQJ
+                                                                             curacy at both global and local levels: at the global level, we
+Figure 2. (a) This style reference exhibits rich style patterns, e.g.,       preserve character order within a text line to maintain con-
+ligatures, spacing, and vertical alignment alongside undesired con-          textual relationships between characters, while at the local
+tent information: “popular victory with”. (b) Random masking                 level, we ensure the structural correctness of each individual
+disrupts both style features and content information. (c) Column-            word. To achieve this, we develop a novel multi-scale con-
+wise masking maintains style patterns (e.g., character style and             tent discriminator. The line content discriminator segments
+vertical alignment) while removing horizontal content informa-               the text-line image and processes it with a 3D CNN [55]
+tion. (d) Row-wise masking preserves joins and spacing while                 to capture global contextual relationships, encouraging the
+disrupting vertical content.                                                 generator to maintain proper character sequencing. Mean-
+ing of either. For instance, minimizing content recogni-                     while, the word discriminator employs an attention mech-
+tion loss inevitably pushes these models to produce eas-                     anism to isolate individual words and verify their content
+ily recognizable outputs with simpliﬁed styles (e.g., regu-                  accuracy, guiding the generator to reﬁne local text content.
+lar fonts and standard strokes, as shown in Figure 9), ulti-                 Our empirical results (cf. Figure 7) show that this multi-
+mately hindering the faithful mimicking of diverse hand-                     scale content discriminator signiﬁcantly improves content
+writing styles. 2) Difﬁculty in maintaining character-                       accuracy without hindering style imitation quality.
+level accuracy: Ensuring the readability of text lines with                     Our main contributions include: (1) To the best of our
+numerous characters remains challenging. For instance, in                    knowledge, DiffBrush is among the ﬁrst to leverage diffu-
+datasets like IAM [36], where a single text line averages                    sion generative models for handwritten text-line generation.
+42 characters—approximately six times the length of a typ-                   (2) DiffBrush introduces a novel content-decoupled style
+ical word. Optimizing content loss at the text-line level                    learning strategy that signiﬁcantly enhances style imitation,
+encourages global correctness but may fail to preserve in-                   along with a new multi-scale content learning strategy that
+dividual character accuracy, making it difﬁcult to maintain                  boosts content accuracy. (3) Extensive experiments on two
+content integrity across the entire generated text (cf. DCER                 popular English handwritten datasets (cf. Table 1 and Fig-
+and DWER columns in Table 1).                                                ure 6) and one Chinese dataset (cf. Figure 11) demonstrate
+                                                                             that DiffBrush signiﬁcantly outperforms state-of-the-arts.
+   To generate handwritten text lines with improved con-
+tent accuracy and style ﬁdelity, we introduce DiffBrush, a
+novel diffusion-based approach. Our method incorporates
+                                                                             2. Related Work
+two key strategies: (1) content-decoupled style learning,                    Handwritten text generation methods are generally divided
+and (2) multi-scale content learning.                                        into online and ofﬂine: the former synthesizes dynamic
+   Content-decoupled style learning aims to disrupt content                  stroke sequences, while the latter generates static text im-
+information of style references while preserving key style                   ages. With the advancement of deep learning, Transformer
+patterns. This eliminates content interference, thus achiev-                 decoders [6] and diffusion models [8, 34, 47] have been
+ing effective one-shot style learning (cf. Table 1 and Fig-                  used for synthesizing online handwritten text. However,
+ure 6). A naive approach, such as random masking, fails                      as highlighted in recent studies [3, 7, 44], online methods
+as it disrupts both content and key style features like word                 require temporal data (e.g., coordinate points and writing
+spacing and vertical alignment (cf. Figure 2(b)). To address                 orders) collected from a digital stylus pen and cannot syn-
+this, we propose column- and row-wise masking (cf. Fig-                      thesize stroke width, ink color like ofﬂine methods. In light
+ure 2(c), (d)), which selectively disrupts content while pre-                of this, this paper focuses on ofﬂine handwriting generation.
+serving critical style patterns. For style enhancement in ver-                   The advent of Generative Adversarial Networks [20, 33]
+tical direction, as shown in Figure 3, we apply column-wise                  has accelerated the development of ofﬂine handwritten text
+masking to the extracted style features, maintaining verti-                  generation. Early works [1, 11] use character labels as con-
+cal alignment while removing horizontal content informa-                     tent inputs and random noise as style inputs to synthesize
+tion. A Proxy-NCA loss [25, 38] is then used to enforce                      handwritten words with controllable content and random
+style consistency within writers while distinguishing dif-                   styles. To enhance style control, SLOGAN [35] conditions
+ferent writers, enabling the vertical enhancing head to re-                  style inputs on ﬁxed writer IDs but fails to mimic unseen
+ﬁne vertical alignment. For style enhancement in horizontal                  styles. Unlike them, GANwriting [22] and HWT [3] em-
+direction, row-wise masking preserves word and character                     ploy CNN or transformer encoder to extract style features
+spacing while disrupting vertical content, allowing the hor-                 from style references and are thus capable of imitating any
+izontal enhancing head to reinforce horizontal spacing pat-                  styles. Further, VATr [44] utilizes symbol images as con-
+terns. This novel masking strategy effectively disentangles                  tent representations, enabling character generation beyond
+
+
+
+                                                                         19055
+                            &RQWHQWGHFRXSOHG6W\OH0RGXOH                            'HQRLVLQJ3URFHVV              /LQH&RQWHQW'LVFULPLQDWRU
+                                                              &ROXPQZLVH
+                                                                0DVNLQJ
+                                                                                         1RLVH ‫ܶݔ‬
+                                           9HUWLFDO                      ࣦ   ௩௘௥                            6OLFH
+       6W\OH5HIHUHQFH                  (QKDQFLQJ+HDG                                                                           ࣞ௟௜௡௘
+                             6W\OH                                                                                                        )DNH5HDO
+                                                               5RZZLVH                  ‫݌‬ఏ ሺ‫ି்ݔ‬ଵ ȁ‫ ்ݔ‬ǡ ܿሻ
+                            (QFRGHU       +RUL]RQWDO          0DVNLQJ
+                                        (QKDQFLQJ+HDG                    ࣦ௛௢௥                  ͙
+
+                                                                                         ‫݌‬ఏ ሺ‫ݔ‬௧ିଵ ȁ‫ݔ‬௧ ǡ ܿሻ
+
+                                                             ܵ௩௘௥                                                    :RUG&RQWHQW'LVFULPLQDWRU
+                                            ܵ௛௢௥                                                ͙
+       7H[WXDO&RQWHQW                                                                    ‫݌‬ఏ ሺ‫ݔ‬଴ ȁ‫ݔ‬ଵ ǡ ܿሻ
+                            &RQWHQW     ܳ
+                                                                                                             $WWHQG
+       ĂďůĞƚŽƚĂůŬĂďŽƵƚ                                                                                                       ࣞ௪௢௥ௗ     )DNH5HDO
+                            (QFRGHU
+                                                                    &RQGLWLRQ                   ‫Ͳݔ‬
+                                                   %OHQGHU
+                                        &RQGLWLRQDO'LIIXVLRQ*HQHUDWRU                                               &RQWHQW'LVFULPLQDWRUV
+Figure 3. Method overview. Our DiffBrush consists of a conditional diffusion generator, a content-decoupled style module, and multi-
+scale content discriminators. The style module extracts two enhanced style features Shor and Sver , which are blended with the content
+representation Q from the content encoder to construct the condition vector c. This condition is then used to guide the denoising process
+to generate images. To enhance style learning, we explore column- and row-wise masking to effectively eliminate content interference in
+style modeling. The content discriminators provide feedback at both line and word levels, enhancing the readability of generated text. The
+slice operation divides the text-line image into horizontal segments, while the attend operation locates word positions in the text-line.
+
+the training charset. In contrast to the above word-focused                         Conditional diffusion model. The diffusion model [17]
+methods, TS-GAN [9] and CSA-GAN [23] are developed                                  generates realistic images by progressively denoising a ran-
+to synthesize handwritten text-lines. However, they strug-                          dom Gaussian noise input. To achieve controllable genera-
+gle to produce satisfactory results due to design drawbacks                         tion, the conditional diffusion model [4, 49, 62–64, 66] in-
+in style learning and content supervision.                                          corporates a condition signal c to guide the denoising pro-
+   The rapid development of diffusion models [10, 19, 28,                           cess. Starting from pure Gaussian noise xT ∼ N (0, I),
+58, 60] offers new potential for handwritten text generation.                       a denoising network pθ iteratively reﬁnes the image over
+However, some early attempts [39, 67], which condition de-                          multiple timesteps to produce the target image x0 . The
+noising process on ﬁxed writer labels, cannot mimic unseen                          network pθ , typically based on a U-Net architecture [50],
+handwriting styles. To address this, DiffusionPen [40] and                          integrates c via cross-attention or adaptive modulation lay-
+One-DM [7] extract style information from reference im-                             ers. The training objective minimizes the mean squared er-
+ages, and then merge this information with the textual con-                         ror (MSE)
+                                                                                               between the predicted and real images: Ldiff =
+tent to guide the denoising process. However, regarding text                        Ext ,c x0 − xreal 2 . By leveraging condition signals such
+content readability, One-DM simply incorporates a text rec-                         as text prompts and reference images, conditional diffusion
+ognizer with a CTC decoder, while DiffusionPen neglects                             models enable ﬁne-grained control over the generation.
+this challenge entirely. Different from them, we propose
+a novel multi-scale content learning strategy, signiﬁcantly                         4. Method
+enhancing text content readability. Moreover, previous dif-
+                                                                                    4.1. Overall Scheme
+fusion methods [7, 39, 40, 67] focus on generating isolated
+words whereas our DiffBrush aims for entire text-line gen-                          To generate handwritten text-lines with enhanced content
+eration. We discuss more related works about diffusion                              accuracy and style ﬁdelity, we propose DiffBrush, a novel
+methods for general image generation in Appendix A.                                 conditional diffusion generation method. As shown in Fig-
+                                                                                    ure 3, the architecture of DiffBrush consists of three main
+3. Problem Statement and Preliminaries                                              components: content-decoupled style module, conditional
+                                                                                    diffusion generator, and multi-scale content discriminators.
+Problem statement. Given a text string A and a style ref-                              The content-decoupled style module ξstyle aims to better
+erence si randomly sampled from an exemplar writer wi ∈                             capture the text-line styles of exemplar writers. To achieve
+W, we aim to synthesize a handwritten text-line image x                             this, we introduce a content-decoupled style learning strat-
+that captures the unique calligraphic style of wi while accu-                       egy (cf. Section 4.2), which leverages two novel content-
+rately preserving the content of A. Here, A = {ai }L  i=1 rep-                      masking techniques and a style learning loss Lstyle to en-
+resents a sequence of length L, where each ai is a Unicode                          hance text-line style modeling (cf. Figure 3). The extracted
+character, including lowercase and uppercase letters, digits,                       style features are then fused with content features from a
+punctuation. The key challenges lie in accurately capturing                         content encoder to form the condition vector c within a
+handwriting styles, including both intra- and inter-word pat-                       blender module. Both the content encoder and blender mod-
+terns from the style reference, while ensuring the readability                      ule are designed based on One-DM [7], with further exten-
+of text-lines that typically contain numerous characters.                           sions (cf. Appendix B for details). Guided by c, the condi-
+
+
+
+                                                                          19056
+                                                                                                    YHUWLFDOORVVࣦ௩௘௥
+                                                                                    &ROXPQZLVH
+                               6W\OH       9HUWLFDO                                   0DVNLQJ                          $YJ                         ‫݌‬௖
+                              (QFRGHU   (QKDQFLQJ+HDG
+                                                                                                                              ‫ݏ‬௖ା
+            6W\OH5HIHUHQFH                                     5HVKDSHGIHDWXUH ܵመ௩௘௥                                                           ‫ݏ‬௖ି
+                                                         ܵ௩௘௥                  7UDLQLQJSKDVHRQO\
+                                        D 9HUWLFDO6W\OH(QKDQFLQJYLD&ROXPQZLVH0DVNLQJ
+                                                                                                   KRUL]RQWDOORVVࣦ௛௢௥
+                                                                                     5RZZLVH
+                               6W\OH      +RUL]RQWDO                                 0DVNLQJ                          $YJ                         ‫݌‬௥
+                              (QFRGHU   (QKDQFLQJ+HDG
+                                                                                                                             ‫ݏ‬௥ା
+            6W\OH5HIHUHQFH                                     5HVKDSHGIHDWXUH ܵመ௛௢௥
+                                                         ܵ௛௢௥                                      7UDLQLQJSKDVHRQO\                            ‫ݏ‬௥ି
+
+                                        E +RUL]RQWDO6W\OH(QKDQFLQJYLD5RZZLVH0DVNLQJ
+Figure 4. Style learning via column- and row-wise masking. (a) An improved vertical style feature Sver is extracted by the vertical
+enhancing head, guided by a vertical loss Lver . Speciﬁcally, during training, we begin reshaping Sver into spatial feature Ŝver and
+perform column-wise masking on Ŝver . After average pooling, s+ c is drawn closer to its corresponding writer proxy pc , while the negatives
+s−
+ c belonging to different writers are pushed away by pc . (b) Similarly, a style feature Shor is extracted by the horizontal enhancing head.
+We reshape Shor and conduct row-wise masking. After pooling, s+                                                        −
+                                                                   r is linked to its writer proxy pr , and negatives sr are pushed away.
+
+
+
+tional diffusion generator G performs denoising process to                           Vertical style enhancing via column-wise masking. The
+synthesize realistic handwritten text-line image x0 .                                vertical enhancing head aims to enhance style learning
+   However, training the generator G with solely the diffu-                          in the vertical direction (e.g., vertical alignment patterns)
+sion loss Ldif f is insufﬁcient to ensure the content read-                          via column-wise masking. Speciﬁcally, as shown in Fig-
+ability of generated text lines. To address this, we introduce                       ure 4(a), we perform masking on Sver by ﬁrst reshaping
+a multi-scale content learning strategy (cf. Section 4.3).                           the sequential feature Shor back into spatial feature Ŝver ∈
+Speciﬁcally, we develop a multi-scale discriminator D to                             Rh×w×c . We then divide Ŝver into several columns and
+evaluate the content correctness at both the line and word                           randomly mask a subset of columns with equal probability
+levels, thus providing more ﬁne-grained content supervision                          to obtain an average feature sc ∈ Rh×n×c , where n = w · ρ
+Lconent for content adversarial learning between G and D.                            and ρ is the masking ratio. After column-wise masking, we
+   To summarize, the overall training objectives of our Diff-                        adopt a Proxy-NCA loss [25, 38] for style learning, which
+Brush combines all three loss functions:                                             enforces style consistency within writers while distinguish-
+                                                                                     ing different writers. Speciﬁcally, our vertical enhancing
+             LG = Ldif f + Lstyle + λLcontent ,                           (1)        loss Lver assigns a proxy to each writer, treating it as an an-
+                                                                                     chor to cluster the masked style features of the same writer
+where λ serves as a trade-off factor, and we empirically set                         while pushing apart those of different writers:
+it to 0.05 in training.                                                                                         ⎛            ⎞                ⎛            ⎞
+                                                                                                     1                   +         1                 −
+                                                                                          Lver =            log ⎝1 +    e−fc ⎠ +          log ⎝1 +    e fc ⎠ ,   (3)
+4.2. Content-decoupled Style Learning                                                                 +
+                                                                                                   |Pc |  +
+                                                                                                       pc ∈Pc         +
+                                                                                                                   sc ∈Sc
+                                                                                                                                    |Pc |
+                                                                                                                                       pc ∈Pc       −
+                                                                                                                                                   sc ∈Sc
+
+
+As discussed in Section 1, text-line style learning is hin-
+dered by content interference, leading to ineffective style                          where Sc = {sic }N  i=1 is a batch of masked style features,
+
+extraction. To address this, we propose to disrupt content                           Pc denotes the set of proxies of all writers, and Pc+ refers
+information (by masking) to eliminate content interference                           to the set of writers present in the current batch. For each
+during style learning, forcing the model to focus on essen-                          proxy pc , Sc is divided into a positive set Sc+ , consisting
+tial style patterns. Speciﬁcally, as shown in Figure 3, style                        of sc from the same writer as pc , and a negative set Sc− =
+samples are ﬁrst processed by a CNN-Transformer style                                Sc − Sc+ . The similarity between positive pairs is fc+ =
+encoder to obtain an initial style feature S with rich calli-                        α(g(sc , pc ) − δ) for sc ∈ Sc+ , and that of negative pairs
+graphic attributes. To reﬁne style representation, we intro-                         is fc− = α(g(sc , pc ) + δ) for sc ∈ Sc− , where g(·) is the
+duce two dedicated style-enhancing heads, each incorpo-                              cosine similarity, δ > 0 is a margin and α is a scaling factor.
+rating a standard self-attention layer to extract ﬁne-grained                        Horizontal style enhancing via row-wise masking. The
+style features: Sver (vertical) and Shor (horizontal). These                         horizontal enhancing head aims to enhance style learning
+features are learned by using row- and column-wise mask-                             in the horizontal direction (e.g., word and character spac-
+ing for content disruption. The overall content-decoupled                            ing) via row-wise masking. As shown in Figure 4(b), the
+style loss Lstyle is formulated as the sum of a vertical en-                         masking operation is conducted in a similar way as column-
+hancing loss Lver and a horizontal enhancing loss Lhor :                             wise making. Speciﬁcally, we reshape the sequential fea-
+                                                                                     ture Shor back into a spatial feature Ŝhor ∈ Rh×w×c and
+                    Lstyle = Lver + Lhor .                                (2)        then conduct random row-wise masking to obtain sr ∈
+
+
+
+                                                                                19057
+                                         «                                                          $WWHQG
+                                                          ࣞ௟௜௡௘       )DNH5HDO                                                      ࣞ௪௢௥ௗ           )DNH5HDO
+                                      «
+                  ‫Ͳݔ‬         F F F « FQ FQ                                          ‫Ͳݔ‬
+                           D /LQH&RQWHQW'LVFULPLQDWRU                                        E :RUG&RQWHQW'LVFULPLQDWRU
+Figure 5. Illustration of the multi-scale content discriminators. (a) For the line content discriminator Dline , we concatenate the generated
+text-line image x0 and guidance image along the channel dimension, slice the result into n segments, and then process them with a 3D
+CNN [55] to integrate context information. Finally, the line discriminator Dline evaluates each segment as real or fake. (b) For the word
+content discriminator Dword , we utilize an attention module [52] to attend to individual words within the generated text line image x0 , and
+then input these words, along with corresponding content guidance, into Dword for realism discrimination.
+
+Rm×w×c , where m = h · ρ. Our horizontal enhancing loss                             narrower one with white background pixels for width align-
+Lhor pulls the masked style features of the same writer to-                         ment. We then concatenate x0 and Iline along the chan-
+gether while pushing those of different writers apart:                              nel dimension, and then slice the concatenated result into n
+                       ⎛            ⎞                  ⎛            ⎞               non-overlapping segments {ci }ni=1 from left to right. After-
+ Lhor =
+            1   
+                   log ⎝1 +
+                                 +
+                               e−fr ⎠ +
+                                         1 
+                                                   log ⎝1 +
+                                                                 −
+                                                               e fr ⎠ ,   (4)       wards, a 3D CNN [55] based discriminator Dline processes
+             +
+          |Pr |                         |Pr |
+                 +
+              pr ∈Pr         +
+                            sr ∈Sr            p ∈P
+                                               r   r         −
+                                                           sr ∈Sr                   {ci }ni=1 to incorporate global context information of char-
+                                                                                    acters, and determines whether this output is real or fake,
+where we assign a proxy pr to each writer and link it with                          providing feedback for the overall character order. The line
+all masked results Sr . The similarity between positive pairs                       discriminator loss Lline is formulated as:
+is fr+ = α(g(sr , pr ) − δ) for sr ∈ Sr+ , and that of negative
+pairs is fr− = α(g(sr , pr ) + δ) for sr ∈ Sr− .                                        Lline = log(Dline (Iline , xreal )) + log(1 − Dline (Iline , x0 )). (6)
+
+4.3. Multi-Scale Content Learning                                                   Word content discriminator. Compared to the line dis-
+                                                                                    criminator Dline , the word discriminator Dword is designed
+Existing methods [7, 9, 12, 23, 44] rely on content recog-                          to ensure that the text structure is correctly generated at the
+nition losses to enhance the content readability of gener-                          word level. However, accurately locating word positions
+ated handwriting images. However, these losses, applied                             within a whole text-line x0 is non-trivial. Motivated by
+at the text-line level, prioritize global correctness but of-                       ASTER [52], we utilize an attention module with a CNN-
+ten fail to ensure character-level accuracy. For instance, in                       LSTM architecture to obtain word positions.
+datasets like IAM [36], where a single text line averages 42                            As shown in Figure 5(b), given the generated image x0
+characters—approximately six times the length of a typical                          after diffusion, a CNN encoder ﬁrst extracts spatial features
+word, maintaining content integrity across the entire gener-                        Fmap ∈ Rh×w×c from x0 , which is ﬂattened into sequen-
+ated text becomes challenging. To address this problem, we                          tial features H ∈ Rl×c , where l = h × w. The LSTM de-
+introduce a multi-scale content learning strategy that pro-                         coder then takes x0 and a start-of-sequence (SOS) token as
+vides ﬁner-grained content supervision at both global (line)                        input, sequentially outputting attention maps for character
+and local (word) levels for content adversarial training. As                        positions until the end-of-sequence (EOS) token is reached.
+shown in Figure 5, the line content discriminator Dline eval-                       The character-level attention maps are then concatenated
+uates the overall character order with a line discrimination                        into word-level attention maps A = {at }Tt=1 (cf. Figure 12
+loss Lline , while the word content discriminator Dword en-                         in Appendix), where at ∈ Rh×w and T denotes the number
+sures character-level accuracy through a word discrimina-                           of words in the text-line. Based on the attention maps, we
+tion loss Lword . The overall multi-scale content loss is then                      extract attended words {xtword }Tt=1 , with xtword = at · x0 .
+formulated as:                                                                      Lastly, each xword and its corresponding content guidance
+                                                                                    Iword are fed into Dword for discrimination, which provides
+                       Lcontent = Lline + Lword .                         (5)       word-level content feedback for the generator to reﬁne the
+                                                                                    local content readability. Speciﬁcally, the word discrimina-
+Line content discriminator. As shown in Figure 5(a),                                tor loss Lword is formulated as:
+given the generated image x0 after diffusion and the content                                  
+                                                                                              T                                      
+                                                                                                                                     T
+guidance Iline without style information, the line discrim-                         Lword =         log(Dword (Iword
+                                                                                                                i
+                                                                                                                     , xireal )) +         log(1 − Dword (Iword
+                                                                                                                                                           i
+                                                                                                                                                                , xiword )),
+inator Dline aims to determine whether the overall charac-                                    i=1                                    i=1
+                                                                                                                                                                          (7)
+ter order in x0 matches that in Iline . Firstly, we set the
+wider of the Iline and x0 as the benchmark, padding the                             where i represents the i-th word in a text line.
+
+
+
+                                                                                19058
+                       Datasets       Method          Shot   HWD ↓     DCER ↓   DWER ↓   FID ↓   IS ↑      GS ↓
+                                    TS-GAN [9]        one     2.11      44.20   87.13    16.76   1.76   2.87 ×10−2
+                                   CSA-GAN [23]       few     2.25      42.27   84.14    13.52   1.74   1.62 ×10−2
+                       IAM            VATr [44]       few     1.87      28.80   71.77    12.51   1.69   1.45 ×10−2
+                                  DiffusionPen [40]   few     1.72      54.75   84.70    10.24   1.83   6.42 ×10−3
+                                    One-DM [7]        one     1.80      20.91   54.27    10.60   1.82   8.42 ×10−3
+                                        Ours          one     1.41       8.59   28.60     8.69   1.85   2.35 ×10−3
+                                   CSA-GAN [23]       few     1.72      41.64   72.02     8.71   1.48   6.71 ×10−2
+                                      VATr [44]       few     1.50      38.49   66.33     9.04   1.44   1.43 ×10−1
+                       CVL
+                                  DiffusionPen [40]   few     1.32      55.94   88.36    11.90   1.59   5.08 ×10−2
+                                    One-DM [7]        one     1.47      32.42   63.35    11.95   1.46   1.29 ×10−1
+                                        Ours          one     1.06      20.92   36.38     7.57   1.70   2.96 ×10−2
+
+Table 1. Comparisons with baselines on handwritten text-line generation on IAM and CVL. All methods are trained on the same training
+set and evaluated using the same protocols. The “Shot” column indicates the number of text-line style references required for each method.
+
+5. Experiments                                                            on a ResNet18, followed by 2 transformer encoder layers.
+                                                                          Line discriminator uses three 3D convolution layers, and
+5.1. Experimental Settings                                                word discriminator has three 2D convolution layers. The
+Evaluation dataset. To evaluate our DiffBrush in generat-                 model is trained for 800 epochs on eight RTX 4090 GPUs
+ing handwritten text-line, we use the widely adopted hand-                using the AdamW optimizer with a learning rate of 10−4 .
+writing datasets IAM [36] and CVL [26]. IAM contains                      We set masking ratio ρ to 0.5 after a grid search (cf. Ta-
+13,353 English text-line images belonging to 657 unique                   ble 5 in Appendix). We randomly drop the condition c with
+writers. Following the protocol of CSA-GAN [23], we use                   the probability 0.1 for classiﬁer-free training [16]. During
+text-lines from 496 writers for training and the remaining                inference, we adopt a classiﬁer-free guidance scale of 0.2
+161 writers for testing. CVL dataset consists of handwrit-                and use DDIM [53] with 50 steps to accelerate the process.
+ten text-lines from 310 writers in both English and Ger-                  More details are put in Appendix B.
+man. For our experiments, we use the English portion, con-                Compared Methods. We compare DiffBrush with state-
+sisting of 11,007 text-lines, and follow the standard CVL                 of-the-art handwritten text-line generation methods, includ-
+split, with 283 writers for training and 27 for testing. In               ing TS-GAN [9], CSA-GAN [23], and advanced word-level
+all experiments, we resize the images to a height of 64 pix-              handwritten text generation approaches like VATr [44], Dif-
+els while preserving their aspect ratio, as done in previous              fusionPen [40] and One-DM [7]. We provide implementa-
+works[7, 9, 23]. To manage varying widths, images with                    tion details of word-level methods in Appendix G.
+a width smaller than 1024 pixels are padded, whereas those
+exceeding 1024 are resized to a ﬁxed size of 64 × 1024. We                5.2. Main Results
+also evaluate DiffBrush on popular Chinese dataset CASIA-                 Styled handwritten text-line generation. We assess Diff-
+HWDB (2.0–2.2) [32] (cf. Appendix E for more details.)                    Brush for generating handwritten text-line images with de-
+Evaluation metrics. 1) We use the newly proposed Hand-                    sired style and speciﬁc content. To quantify style similarity,
+writing Distance (HWD) [45], speciﬁcally designed for                     following CSA-GAN [23], we generate text-line images for
+handwriting style evaluation. HWD computes the Eu-                        each method using style information from test set and con-
+clidean distance between features extracted by a VGG16                    tent input from a subset of WikiText-103 [37]. We then
+network pre-trained on a large corpus of handwritten text                 calculate the HWD between the generated and real samples
+images. 2) For content evaluation, we follow latest stud-                 for each writer, and ﬁnally average the results.
+ies [7, 40, 41] by using the generated training sets from                    The quantitative results in Table 1 show that DiffBrush
+each method to train an OCR system [48] and report its                    outperforms all state-of-the-art methods on both IAM and
+recognition performance on the real test set in terms of CER              CVL datasets. Speciﬁcally, it improves HWD by 18.02%
+and WER. We name these new evaluation metrics DCER and                    (1.72 → 1.41) on IAM and 19.69% (1.32 → 1.06) on CVL
+DWER , with further discussions provided in Appendix C. 3)                compared to the second-best method, highlighting its supe-
+We use Fréchet Inception Distance (FID) [15], Inception                  rior style imitation ability. Moreover, DiffBrush achieves
+Score (IS) [51], and Geometry Score (GS) [24] to measure                  signiﬁcantly lower DCER and DWER on both IAM and CVL
+the visual quality of generated images. 4) We also conduct                datasets, demonstrating its advantage in content readability.
+user studies to quantify the subjective quality of the gener-             In contrast, DiffusionPen [40] yields the highest DCER and
+ated handwritten text-line images in Appendix D.                          DWER due to ineffective content supervision.
+Implementation details. In all experiments, we use a ran-                    We provide qualitative results to intuitively explain the
+domly selected text-line sample as the style reference. In                beneﬁt of our DiffBrush in Figure 6. TS-GAN struggles
+DiffBrush, both the style and content encoders are based                  to accurately capture the style patterns of reference sam-
+
+
+
+                                                                     19059
+           6W\OH
+          VDPSOHV
+
+        76*$1
+
+        &6$*$1
+
+           9$7U
+
+       'LIIXVLRQ3HQ
+
+         2QH'0
+
+           2XUV
+
+Figure 6. Qualitative comparisons between our method and state-of-the-art approaches for handwritten text-line generation, conditioned
+on out-of-vocabulary (OOV) textual content and unseen styles from the IAM test dataset. We use the same guiding text, “Success is not the
+destination, it’s the journey, every step forward is a step toward growth.” for all methods, instructing them to generate the text in different
+handwriting styles. The red circles highlight missing characters or structural errors. Better zoom in 200%.
+
+
+                           6W\OH VDPSOH                                                         +:'Ļ େ୉ୖ Ļ ୛୉ୖ Ļ
+
+                           %DVHߝ௦௜௡௚௟௘ ZLWKRXWPDVNLQJ                                               
+
+                           %DVHߝ௦௜௡௚௟௘ UDQGRPPDVNLQJ                                                
+
+                           %DVHߦ௦௧௬௟௘                                                                 
+
+                           %DVHߦ௦௧௬௟௘ ࣞ௪௢௥ௗ                                                          
+
+                           %DVHߦ௦௧௬௟௘ ࣞ௟௜௡௘                                                          
+
+                           %DVHߦ௦௧௬௟௘ ࣞ௟௜௡௘ ࣞ௪௢௥ௗ                                                    
+
+Figure 7. Ablation studies of the content-decoupled style module (ξstyle ) and the multi-scale content discriminators (i.e., Dline and Dword )
+based on IAM test set. εsingle denotes a single CNN-Transformer style encoder (ResNet18 followed by 3 transformer encoder layers). The
+red boxes highlight failure instances of structure preservation, whereas the blue box points out an incorrect repetitive word.
+
+ples, like ink color and stroke width. CSA-GAN produces                   5.3. Analysis
+samples that lack style consistency, including inconsistent
+character slant, ink color, and stroke width. VATr has difﬁ-              In this section, we conduct ablation studies to analyze our
+culty maintaining vertical alignment between words in the                 DiffBrush. We provide more analyses in Appendix, includ-
+synthesized text lines. DiffusionPen struggles to ensure the              ing generalization evaluation on various style backgrounds,
+content readability of generation results. One-DM occa-                   failure case analysis, ablation results on masking ratio, en-
+sionally generates text lines with missing or incorrect char-             riching datasets to train recognizer, style interpolation re-
+acters. Conversely, our DiffBrush excels at generating pre-               sults, style evaluation results in terms of WIER [12, 61],
+cise character details while maintaining overall consistency.             discussions about ﬁne-grained style learning.
+
+Style-agnostic text-line generation. We further evaluate                  Quantitative evaluation of style module and content dis-
+DiffBrush’s ability to generate realistic handwritten text-               criminators. We perform multiple ablation studies to ana-
+line images, independent of style imitation. Following TS-                lyze different components. Quantitative results in Figure 7
+GAN [9], each method generates 25k random text-line im-                   reveal that: (1) Compared to two variants—a basic style
+ages to calculate FID against all training samples, and 5k                encoder without masking, and with random masking (best
+random samples for GS calculation, compared with 5k sam-                  masking ratio 0.5)—our style module ξstyle signiﬁcantly
+ples from the test set. Besides, we generate the entire test              improves HWD by 19.23% (1.82 → 1.47), and 16.00%
+set using each method and evaluate the results using the IS.              (1.75 → 1.47), respectively. This highlights the effective-
+As shown in Table 1, DiffBrush achieves the highest per-                  ness of ξstyle in style learning. (2) The combination of the
+formance across FID, IS, and GS metrics on both IAM and                   Dword and Dline leads to signiﬁcant improvements in terms
+CVL datasets, further demonstrating its ability to generate               of DCER and DWER without reducing HWD. This is achieved
+superior-quality handwritten text-line images.                            by employing style-free conditional discriminators, which
+
+
+
+                                                                    19060
+  6W\OHPRGXOHLQ'LII%UXVK                           +:'Ļ େ୉ୖ Ļ ୛୉ୖ Ļ              6W\OH VDPSOH                              +:'Ļ '&(5Ļ ':(5Ļ ),'Ļ
+
+                                                                                      9$7UDVVHPEOLQJ                               
+  6LQJOHVW\OHHQFRGHU                                      
+                                                                                      2QH'0DVVHPEOLQJ                             
+  9HUHQKDQFLQJKHDGRQO\                                  
+                                                                                      'LIIXVLRQ3HQDVVHPEOLQJ                       
+  +RUHQKDQFLQJKHDGRQO\                                              'LII%UXVK 2XUV                                  
+
+  2XUVW\OHPRGXOH                                                   Figure 10. Comparisons between directly generated text-lines and
+Figure 8. Effect of the horizontal and vertical enhancing heads                   text-lines assembled by isolated words on IAM test set.
+on IAM test set. Red lines highlight vertical alignment of words,                     0HWKRG                                   +:'Ļ '  Ļ   'ୈĻ   ),'Ļ
+while blue boxes denote the word spacing. “Single style encoder”
+is a basic CNN-Transformer encoder without masking.                                   2QH'0                                        
+
+                                                                                       2XUV                                         
+  6W\OHVDPSOH                                       +:'Ļ '&(5Ļ ':(5Ļ
+
+  %DVH+ߦୱ௧௬௟௘                                                       Figure 11. Quantitative and qualitative comparisons with One-
+  %DVH+ߦୱ௧௬௟௘ +&7&                                                  DM [7] on Chinese handwritten text-line generation. The blue
+  %DVH+ߦୱ௧௬௟௘ +ࣞ                                             
+                                                                                  boxes highlight the character spacing, while the red circles em-
+                                                                                  phasize the incorrect character structures.
+Figure 9. Effect of discriminators D and CTC recognizer [14]                      results in Figure 9 intuitively explain the reasons for this
+under their best trade-off factor. Red circles indicate handwritten
+                                                                                  degradation. The CTC version tends to produce texts with
+texts with simpliﬁed style (i.e., regular texts with standard strokes).
+                                                                                  simpliﬁed styles that differ signiﬁcantly from style samples.
+focus solely on forcing the generator to enhance content                          Conversely, our discriminators enhance content readability
+readability, without impeding the learning of style.                              while preserving style mimicry performance. We provide
+Qualitative evaluation of style module and content dis-                           more experiment details and visual results in Appendix E.
+criminators. We conduct visual ablation experiments to                            Discussions on directly generated and assembled text-
+further analyze each module in our DiffBrush. As shown                            lines. We conduct experiments to demonstrate the supe-
+in Figure 7, we observe that the ﬁrst two basic baselines                         riority of directly generated text lines over those obtained
+show clear drawbacks in both style imitation and content                          through concatenation. To this end, we apply the assem-
+readability. Adding our style module signiﬁcantly improves                        bling strategy in DiffusionPen [40] to enable the ofﬁcial
+style reproduction, such as ink color and stroke width, but                       word-level generation baselines to generate text-line image
+content readability remains poor. Adding Dword alone im-                          (cf. Appendix G). The results in Figure 10 demonstrate the
+proves the character details. However, it struggles to main-                      superiority of our method over those non-text line methods.
+tain overall content readability, leading to issues like word                     More experimental results are provided in Appendix H.
+repetitions and shifts. Employing Dline solely enhances                           Applications to Chinese text-line generation. We assess
+overall content readability, but character detail issues still                    DiffBrush’s ability to generate Chinese scripts, a challeng-
+remain. In contrast, the best generation results are achieved                     ing task due to thousands of character categories and their
+when both line- and word-level discriminators are used.                           complex structures. Both quantitative and qualitative results
+Discussions about style learning. We conduct ablation                             are provided on Figure 11. We observe our DiffBrush ef-
+study on the style module to analyze the differences be-                          fectively handles Chinese handwritten text-lines in terms of
+tween two style-enhancing heads. As shown in Figure 8,                            style imitation and content ﬁdelity. More experimental de-
+adding either the vertical or horizontal enhancing head im-                       tails and visualizations are put in Appendix E.
+proves text-line style quality in terms of HWD. The ver-
+tical head enhances the style imitation ability, particularly                     6. Conclusion
+in maintaining consistent vertical word alignment. Mean-                          In this paper, we introduce DiffBrush, a novel diffusion
+while, the horizontal head also improves the style learning,                      model tailored for handwritten text-line generation. To the
+like horizontal spacing patterns. These ﬁndings support our                       best of our knowledge, this is among the ﬁrst exploration
+motivation that content-masking strategies in different di-                       of diffusion models for this task. For better style learning
+rections help the effective style learning (cf. Figure 2). Fi-                    and content guidance, we propose a content-decoupled style
+nally, it is worth emphasizing that our style features contain                    learning strategy that signiﬁcantly enhances style imitation
+complete style information as they are extracted from the                         and multi-scale content discriminators that supervise tex-
+entire style reference before any masking (cf. Figure 3).                         tual content at both the line and word levels while preserv-
+Discussions on discriminators and CTC. The quantita-                              ing style imitation performance. Promising results on three
+tive results in Figure 9 show that incorporating CTC rec-                         widely-used handwritten datasets verify the effectiveness of
+ognizer [14] signiﬁcantly reduces DCER and DWER , while                           our DiffBrush. In the future, we plan to explore its potential
+also impairing the style evaluation (HWD). Visualization                          to support other generative tasks, such as font generation.
+
+
+
+                                                                              19061
+Acknowledgments The research is partially supported                      [12] Ji Gan, Weiqiang Wang, Jiaxu Leng, and Xinbo Gao. Hi-
+by National Natural Science Foundation of China                               gan+: handwriting imitation gan with disentangled represen-
+(No.62176093, 61673182), National Key Research and                            tations. ACM Transactions on Graphics, 42(1):1–17, 2022.
+Development Program of China (No.2023YFC3502900),                             1, 5, 7, 16
+Guangdong Emergency Management Science and Technol-                      [13] Shengjie Gong, Haojie Li, Jiapeng Tang, Dongming Hu,
+ogy Program (No.2025YJKY001).                                                 Shuangping Huang, Hao Chen, Tianshui Chen, and Zhuo-
+                                                                              man Liu. Monocular and generalizable gaussian talking head
+                                                                              animation. In IEEE/CVF Conference on Computer Vision
+References                                                                    and Pattern Recognition, pages 5523–5534, 2025. 14
+ [1] Eloi Alonso, Bastien Moysset, and Ronaldo Messina. Adver-           [14] Alex Graves, Santiago Fernández, Faustino Gomez, and
+     sarial generation of handwritten text images conditioned on              Jürgen Schmidhuber. Connectionist temporal classiﬁcation:
+     sequences. In International Conference on Document Anal-                 labelling unsegmented sequence data with recurrent neural
+     ysis and Recognition, pages 481–486, 2019. 1, 2                          networks. In International Conference on Machine Learn-
+ [2] James Betker, Gabriel Goh, Li Jing, Tim Brooks, Jianfeng                 ing, pages 369–376, 2006. 8, 13, 14, 15
+     Wang, Linjie Li, Long Ouyang, Juntang Zhuang, Joyce Lee,            [15] Martin Heusel, Hubert Ramsauer, Thomas Unterthiner,
+     Yufei Guo, et al. Improving image generation with better                 Bernhard Nessler, and Sepp Hochreiter. Gans trained by a
+     captions. Computer Science, 2(3):8, 2023. 12                             two time-scale update rule converge to a local nash equilib-
+ [3] Ankan Kumar Bhunia, Salman Khan, Hisham Cholakkal,                       rium. Advances in Neural Information Processing Systems,
+     Rao Muhammad Anwer, Fahad Shahbaz Khan, and Mubarak                      30, 2017. 6, 14
+     Shah. Handwriting transformers. In IEEE/CVF Conference              [16] Jonathan Ho and Tim Salimans. Classiﬁer-free diffusion
+     on Computer Vision and Pattern Recognition, pages 1086–                  guidance. arXiv, 2022. 6, 12
+     1094, 2021. 1, 2                                                    [17] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffu-
+ [4] Changjian Chen, Fei Lv, Yalong Guan, Pengcheng Wang,                     sion probabilistic models. Advances in Neural Information
+     Shengjie Yu, Yifan Zhang, and Zhuo Tang. Human-guided                    Processing Systems, 33:6840–6851, 2020. 3, 12
+     image generation for expanding small-scale training image           [18] Lei Hu and Shuangping Huang. Enhancing table structure
+     datasets. IEEE Transactions on Visualization and Computer                recognition via bounding box guidance. In International
+     Graphics, 2025. 3                                                        Conference on Pattern Recognition, pages 209–225, 2024.
+ [5] Yi Chen, Heng Zhang, and Cheng-Lin Liu. Improved learn-                  12
+     ing for online handwritten chinese text recognition with con-       [19] Lei Hu, Zhiyong Gan, Ling Deng, Jinglin Liang, Lingyu
+     volutional prototype network. In International Conference                Liang, Shuangping Huang, and Tianshui Chen. Replaycad:
+     on Document Analysis and Recognition, pages 38–53, 2023.                 Generative diffusion replay for continual anomaly detection.
+     14                                                                       arXiv, 2025. 3
+ [6] Gang Dai, Yifan Zhang, Qingfeng Wang, Qing Du, Zhu-                 [20] Hongxiang Huang, Daihui Yang, Gang Dai, Zhen Han,
+     liang Yu, Zhuoman Liu, and Shuangping Huang. Disentan-                   Yuyi Wang, Kin-Man Lam, Fan Yang, Shuangping Huang,
+     gling writer and character styles for handwriting generation.            Yongge Liu, and Mengchao He. Agtgan: Unpaired image
+     In IEEE/CVF Conference on Computer Vision and Pattern                    translation for photographic ancient character generation. In
+     Recognition, pages 5977–5986, 2023. 2                                    ACM International Conference on Multimedia, pages 5456–
+ [7] Gang Dai, Yifan Zhang, Quhui Ke, Qiangya Guo, and                        5467, 2022. 2
+     Shuangping Huang. One-shot diffusion mimicker for hand-             [21] Shuangping Huang, Yu Luo, Zhenzhou Zhuang, Jin-Gang
+     written text generation. In European Conference on Com-                  Yu, Mengchao He, and Yongpan Wang. Context-aware se-
+     puter Vision, 2024. 1, 2, 3, 5, 6, 8, 12, 13, 14, 15, 25, 26             lective label smoothing for calibrating sequence recognition
+ [8] Ayan Das, Yongxin Yang, Timothy M. Hospedales, Tao Xi-                   model. In ACM International Conference on Multimedia,
+     ang, and Yi-Zhe Song. Chirodiff: Modelling chirographic                  pages 4591–4599, 2021. 13
+     data with diffusion models. In International Conference on          [22] Lei Kang, Pau Riba, Yaxing Wang, Marçal Rusinol, Ali-
+     Learning Representations, 2023. 2                                        cia Fornés, and Mauricio Villegas. Ganwriting: content-
+ [9] Brian L. Davis, Bryan S. Morse, Brian L. Price, Chris Tens-              conditioned generation of styled handwritten word images.
+     meyer, Curtis Wigington, and Rajiv Jain. Text and style con-             In European Conference on Computer Vision, pages 273–
+     ditioned gan for the generation of ofﬂine-handwriting lines.             289, 2020. 2
+     In British Machine Vision Conference, 2020. 1, 3, 5, 6, 7           [23] Lei Kang, Pau Riba, Marcal Rusinol, Alicia Fornes, and
+[10] Prafulla Dhariwal and Alexander Nichol. Diffusion models                 Mauricio Villegas. Content and style aware generation of
+     beat gans on image synthesis. Advances in Neural Informa-                text-line images for handwriting recognition. IEEE Transac-
+     tion Processing Systems, 34:8780–8794, 2021. 3, 12                       tions on Pattern Analysis and Machine Intelligence, 44(12):
+[11] Sharon Fogel, Hadar Averbuch-Elor, Sarel Cohen, Shai Ma-                 8846–8860, 2021. 1, 3, 5, 6
+     zor, and Roee Litman. Scrabblegan: Semi-supervised vary-            [24] Valentin Khrulkov and Ivan Oseledets. Geometry score: A
+     ing length handwritten text generation. In IEEE/CVF Con-                 method for comparing generative adversarial networks. In
+     ference on Computer Vision and Pattern Recognition, pages                International conference on machine learning, pages 2621–
+     4324–4333, 2020. 1, 2                                                    2629, 2018. 6
+
+
+
+                                                                     19062
+[25] Sungyeon Kim, Dongwon Kim, Minsu Cho, and Suha Kwak.               [38] Yair Movshovitz-Attias, Alexander Toshev, Thomas K. Le-
+     Proxy anchor loss for deep metric learning. In IEEE/CVF                 ung, Sergey Ioffe, and Saurabh Singh. No fuss distance met-
+     Conference on Computer Vision and Pattern Recognition,                  ric learning using proxies. In IEEE International Conference
+     pages 3238–3247, 2020. 2, 4                                             on Computer Vision, pages 360–368, 2017. 2, 4
+[26] Florian Kleber, Stefan Fiel, Markus Diem, and Robert Sab-          [39] Konstantina Nikolaidou, George Retsinas, Vincent
+     latnig. Cvl-database: An off-line database for writer re-               Christlein, Mathias Seuret, Giorgos Sﬁkas, Elisa Barney
+     trieval, writer identiﬁcation and word spotting. In Interna-            Smith, Hamam Mokayed, and Marcus Liwicki. Wordstylist:
+     tional Conference on Document Analysis and Recognition,                 Styled verbatim handwritten text generation with latent
+     pages 560–564, 2013. 6                                                  diffusion models. In International Conference on Document
+[27] Daiyuan Li, Guo Chen, Xixian Wu, Zitong Yu, and Mingkui                 Analysis and Recognition, pages 384–401, 2023. 3, 13
+     Tan. Face anti-spooﬁng with cross-stage relation enhance-          [40] Konstantina Nikolaidou, George Retsinas, Giorgos Sﬁkas,
+     ment and spoof material perception. Neural Networks, 175:               and Marcus Liwicki. Diffusionpen: Towards controlling the
+     106275, 2024. 12                                                        style of handwritten text generation. In European Confer-
+[28] Jinglin Liang, Jin Zhong, Hanlin Gu, Zhongqi Lu, Xingxing               ence on Computer Vision, 2024. 1, 3, 6, 8, 13, 15
+     Tang, Gang Dai, Shuangping Huang, Lixin Fan, and Qiang             [41] Konstantina Nikolaidou, George Retsinas, Giorgos Sﬁkas,
+     Yang. Diffusion-driven data replay: A novel approach to                 and Marcus Liwicki. Rethinking htg evaluation: Bridg-
+     combat forgetting in federated class continual learning. In             ing generation and recognition. In European Conference on
+     European Conference on Computer Vision, pages 303–319,                  Computer Vision workshop, 2024. 6, 13
+     2024. 3                                                            [42] Nobuyuki Otsu et al. A threshold selection method from
+[29] Wenhui Liao, Jiapeng Wang, Zening Lin, Longfei Xiong,                   gray-level histograms. Automatica, 11(285-296):23–27,
+     and Lianwen Jin. Pptser: A plug-and-play tag-guided                     1975. 15
+     method for few-shot semantic entity recognition on visually-       [43] Wenjie Peng, Hongxiang Huang, Tianshui Chen, Quhui Ke,
+     rich documents. In Findings of the Association for Compu-               Gang Dai, and Shuangping Huang. Globally correlation-
+     tational Linguistics, pages 10522–10539, 2024. 12                       aware hard negative generation. International Journal of
+                                                                             Computer Vision, pages 1–22, 2024. 12
+[30] Wenhui Liao, Jiapeng Wang, Hongliang Li, Chengyu Wang,
+     Jun Huang, and Lianwen Jin. Doclayllm: An efﬁcient multi-          [44] Vittorio Pippi, Silvia Cascianelli, and Rita Cucchiara. Hand-
+     modal extension of large language models for text-rich docu-            written text generation from visual archetypes. In IEEE/CVF
+     ment understanding. In IEEE/CVF Conference on Computer                  Conference on Computer Vision and Pattern Recognition,
+     Vision and Pattern Recognition, pages 4038–4049, 2025.                  pages 22458–22467, 2023. 1, 2, 5, 6, 12, 14, 15
+[31] Zihao Lin, Jinrong Li, Gang Dai, Tianshui Chen, Shuang-            [45] Vittorio Pippi, Fabio Quattrini, Silvia Cascianelli, and Rita
+     ping Huang, and Jianmin Lin. Contrastive representation                 Cucchiara. HWD: A novel evaluation score for styled hand-
+     enhancement and learning for handwritten mathematical ex-               written text generation. In British Machine Vision Confer-
+     pression recognition. Pattern Recognition Letters, 186:14–              ence, pages 7–9, 2023. 6, 16
+     20, 2024. 12                                                       [46] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya
+                                                                             Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,
+[32] Cheng-Lin Liu, Fei Yin, Da-Han Wang, and Qiu-Feng Wang.
+                                                                             Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learn-
+     Casia online and ofﬂine chinese handwriting databases. In
+                                                                             ing transferable visual models from natural language super-
+     International Conference on Document Analysis and Recog-
+                                                                             vision. In International Conference on Machine Learning,
+     nition, pages 37–41, 2011. 6, 14
+                                                                             pages 8748–8763, 2021. 12
+[33] Zhuoman Liu, Wei Jia, Ming Yang, Peiyao Luo, Yong Guo,
+                                                                        [47] Min-Si Ren, Yan-Ming Zhang, Qiu-Feng Wang, Fei Yin, and
+     and Mingkui Tan. Deep view synthesis via self-consistent
+                                                                             Cheng-Lin Liu. Diff-writer: A diffusion model-based styl-
+     generative network. IEEE Transactions on Multimedia, 24:
+                                                                             ized online handwritten chinese character generator. In In-
+     451–465, 2021. 2
+                                                                             ternational Conference on Neural Information Processing,
+[34] Troy Luhman and Eric Luhman. Diffusion models for hand-                 pages 86–100, 2023. 2
+     writing generation. arXiv, 2020. 2                                 [48] George Retsinas, Giorgos Sﬁkas, Basilis Gatos, and
+[35] Canjie Luo, Yuanzhi Zhu, Lianwen Jin, Zhe Li, and Dezhi                 Christophoros Nikou. Best practices for a handwritten text
+     Peng. Slogan: handwriting style synthesis for arbitrary-                recognition system. In International Conference on Docu-
+     length and out-of-vocabulary text. IEEE Transactions on                 ment Analysis and Recognition workshop, pages 247–259,
+     Neural Networks and Learning Systems, 34(11):8503–8515,                 2022. 6, 13, 14, 16
+     2022. 1, 2                                                         [49] Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+[36] U-V Marti and Horst Bunke. The iam-database: an english                 Patrick Esser, and Björn Ommer. High-resolution image syn-
+     sentence database for ofﬂine handwriting recognition. Inter-            thesis with latent diffusion models. In IEEE/CVF Conference
+     national journal on document analysis and recognition, 5:               on Computer Vision and Pattern Recognition, pages 10684–
+     39–46, 2002. 2, 5, 6                                                    10695, 2022. 3, 12
+[37] Stephen Merity, Caiming Xiong, James Bradbury, and                 [50] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net:
+     Richard Socher. Pointer sentinel mixture models. arXiv,                 Convolutional networks for biomedical image segmentation.
+     2016. 6                                                                 In International Conference on Medical Image Computing
+
+
+
+                                                                    19063
+     and Computer Assisted Intervention, pages 234–241, 2015.             [65] Zhiyuan Zhang, Xiaofan Li, Zhihao Xu, Wenjie Peng, Zi-
+     3                                                                         jian Zhou, Miaojing Shi, and Shuangping Huang. Mpdrive:
+[51] Tim Salimans, Ian Goodfellow, Wojciech Zaremba, Vicki                     Improving spatial understanding with marker-based prompt
+     Cheung, Alec Radford, and Xi Chen. Improved techniques                    learning for autonomous driving. In IEEE/CVF Conference
+     for training gans. Advances in Neural Information Process-                on Computer Vision and Pattern Recognition, pages 12089–
+     ing Systems, 29, 2016. 6                                                  12099, 2025. 12
+[52] Baoguang Shi, Mingkun Yang, Xinggang Wang, Pengyuan                  [66] Longtao Zheng, Yifan Zhang, Hanzhong Guo, Jiachun Pan,
+     Lyu, Cong Yao, and Xiang Bai. Aster: An attentional scene                 Zhenxiong Tan, Jiahao Lu, Chuanxin Tang, Bo An, and
+     text recognizer with ﬂexible rectiﬁcation. IEEE transactions              Shuicheng Yan. Memo: Memory-guided diffusion for ex-
+     on pattern analysis and machine intelligence, 41(9):2035–                 pressive talking video generation. arXiv, 2024. 3
+     2048, 2018. 5                                                        [67] Yuanzhi Zhu, Zhaohai Li, Tianwei Wang, Mengchao He, and
+[53] Jiaming Song, Chenlin Meng, and Stefano Ermon. Denois-                    Cong Yao. Conditional text image generation with diffusion
+     ing diffusion implicit models. In International Conference                models. In IEEE/CVF Conference on Computer Vision and
+     on Learning Representations, 2021. 6                                      Pattern Recognition, pages 14235–14245, 2023. 3
+[54] Tong-Hua Su, Tian-Wen Zhang, De-Jun Guan, and Hu-Jie                 [68] Zhenzhou Zhuang, Zonghao Liu, Kin-Man Lam, Shuang-
+     Huang. Off-line recognition of realistic chinese handwriting              ping Huang, and Gang Dai. A new semi-automatic annota-
+     using segmentation-free strategy. Pattern Recognition, 42                 tion model via semantic boundary estimation for scene text
+     (1):167–182, 2009. 14                                                     detection. In International Conference on Document Analy-
+[55] Du Tran, Lubomir Bourdev, Rob Fergus, Lorenzo Torresani,                  sis and Recognition, pages 257–273, 2021. 13
+     and Manohar Paluri. Learning spatiotemporal features with
+     3d convolutional networks. In IEEE International Confer-
+     ence on Computer Vision, pages 4489–4497, 2015. 2, 5, 12
+[56] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszko-
+     reit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, and Illia
+     Polosukhin. Attention is all you need. In Advances in Neural
+     Information Processing Systems, pages 5998–6008, 2017. 12
+[57] Qiu-Feng Wang, Fei Yin, and Cheng-Lin Liu. Handwrit-
+     ten chinese text recognition by integrating multiple contexts.
+     IEEE transactions on pattern analysis and machine intelli-
+     gence, 34(8):1469–1481, 2011. 14
+[58] Zhendong Wang, Huangjie Zheng, Pengcheng He, Weizhu
+     Chen, and Mingyuan Zhou. Diffusion-gan: Training gans
+     with diffusion. In International Conference on Learning
+     Representations. OpenReview.net, 2023. 3, 12
+[59] Tianming Xie and Wenxiong Kang. A random-binding based
+     bio-hashing template protection method for palm vein recog-
+     nition. IEEE Transactions on Information Forensics and Se-
+     curity, 2025. 13
+[60] Yanwu Xu, Yang Zhao, Zhisheng Xiao, and Tingbo Hou.
+     Ufogen: You forward once large scale text-to-image genera-
+     tion via diffusion gans. In IEEE/CVF Conference on Com-
+     puter Vision and Pattern Recognition, pages 8196–8206,
+     2024. 3, 12
+[61] Jan Zdenek and Hideki Nakayama. Handwritten text gener-
+     ation with character-speciﬁc encoding for style imitation. In
+     International Conference on Document Analysis and Recog-
+     nition, pages 313–329, 2023. 7, 16
+[62] Yifan Zhang and Bryan Hooi. Hipa: enabling one-step text-
+     to-image diffusion models via high-frequency-promoting
+     adaptation. arXiv, 2023. 3
+[63] Yifan Zhang, Daquan Zhou, Bryan Hooi, Kai Wang, and Ji-
+     ashi Feng. Expanding small-scale datasets with guided imag-
+     ination. In Advances in Neural Information Processing Sys-
+     tems, pages 76558–76618, 2023.
+[64] Yifan Zhang, Chunli Peng, Boyang Wang, Puyi Wang,
+     Qingcheng Zhu, Fei Kang, Biao Jiang, Zedong Gao, Eric Li,
+     Yang Liu, et al. Matrix-game: Interactive world foundation
+     model. arXiv, 2025. 3
+
+
+
+                                                                      19064
+

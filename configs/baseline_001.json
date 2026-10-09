@@ -1,0 +1,18 @@
+{
+  "experiment": "baseline_001",
+  "device": "cuda:0",
+  "dtype": "float32",
+  "characters": ["湖", "海", "明", "好", "我", "清", "永", "鑫"],
+  "references": [
+    "vendor/FontDiffuser/figures/ref_imgs/ref_籍_1.jpg",
+    "vendor/FontDiffuser/figures/ref_imgs/ref_鲸.jpg",
+    "vendor/FontDiffuser/figures/ref_imgs/ref_檀.jpg"
+  ],
+  "content_font": "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
+  "font_index": 2,
+  "resolution": 96,
+  "steps": 20,
+  "guidance_scale": 7.5,
+  "seed": 123,
+  "output_dir": "experiments/baseline_001"
+}

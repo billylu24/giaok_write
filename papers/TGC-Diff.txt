@@ -1,0 +1,764 @@
+             Template-Guided Cascaded Diﬀusion
+              for Stylized Handwritten Chinese
+                    Text-Line Generation
+
+         Honglie Wang1,2 , Minsi Ren1,2 , Yan-Ming Zhang1,2(B) , Fei Yin1,2 ,
+                               and Cheng-Lin Liu1,2
+    1
+     State Key Laboratory of Multimodal Artiﬁcial Intelligence Systems (MAIS),
+   Institute of Automation, Chinese Academy of Sciences, Beijing 100190, China
+                   {wanghonglie2023,renminsi2021}@ia.ac.cn,
+                       {ymzhang,fyin,liucl}@nlpr.ia.ac.cn
+2
+  School of Artiﬁcial Intelligence, University of Chinese Academy of Sciences, Beijing
+                                     100049, China
+
+
+
+         Abstract. Current methods for handwritten Chinese text generation
+         primarily focus on generating individual characters. However, for prac-
+         tical applications, users often require a handwritten text-line generation
+         model to streamline their workﬂows. Generating stylized handwritten
+         text-line necessitates capturing both character-level styles (e.g., stroke
+         thickness, ink color, and cursive join) and text-line-level styles (e.g., inter-
+         character spacing and text-line inclination). To address this challenge,
+         we propose a novel cascaded diﬀusion architecture (i.e., Layout-Diﬀ and
+         Imitating-Diﬀ) to disentangle these two levels of styles via customized
+         template guidance. Speciﬁcally, Layout-Diﬀ assists in synthesizing a tem-
+         plate image, where the visual archetypes, rendered in a printed font, are
+         well-arranged on a blank canvas. Subsequently, Imitating-Diﬀ transforms
+         this synthesized template into a stylized handwritten text-line image. We
+         propose a latent aggregation module to eﬃciently incorporate textual
+         guidance into Imitating-Diﬀ while reducing computational cost. Further-
+         more, we design a high-frequency weighted loss for ﬁne-tuning Imitating-
+         Diﬀ in the pixel space to preserve structure details with clarity. Exten-
+         sive experiments demonstrate that our method eﬀectively mimics diverse
+         handwriting styles while ensuring structural accuracy in generated text
+         lines.
+
+
+         Keywords: handwritten text-line generation · style disentanglement ·
+         diﬀusion model
+
+
+1       Introduction
+Handwritten text generation lies at the intersection of NLP and computer vision,
+aiming to synthesize legible and structurally accurate text that preserves indi-
+vidual writing styles and natural variability [18, 44]. This capability underpins
+ c The Author(s), under exclusive license to Springer Nature Switzerland AG 2026
+X.-C. Yin et al. (Eds.): ICDAR 2025, LNCS 16023, pp. 149–166, 2026.
+https://doi.org/10.1007/978-3-032-04614-7_9
+150     H. Wang et al.
+
+
+        Style Image
+
+         Template
+
+        Generation
+
+        Style Image
+
+         Template
+
+        Generation
+
+        Style Image
+
+         Template
+
+         Generation
+
+
+Fig. 1. Several examples demonstrating the high-quality performance of our handwrit-
+ten text-line generation model. The proposed architecture not only seamlessly emulates
+users’ writing styles but also preserves the clarity and integrity of character structures.
+
+
+applications such as personalized signatures, stylized emails, custom document
+rendering, and historical manuscript restoration [13].
+    In particular, Chinese character generation remains challenging due to the
+script’s complexity and diversity [23, 24, 32, 45, 51]. While early methods were
+limited to ﬁxed writer IDs [14], recent advances leverage one-shot learning to
+imitate styles from a single exemplar [5, 47]. However, most existing approaches
+operate at the character level, failing to address line-level handwriting synthesis.
+This task requires resolving two key issues: (1) modeling inter-character spa-
+tial layout and stylistic attributes such as spacing and line inclination, and (2)
+preserving consistent character-level traits—e.g., stroke width, ink color, and
+ligatures—without compromising structural ﬁdelity.
+    To address these challenges, a straightforward approach is to generate char-
+acters independently using a single-character model and manually stitch them
+according to a text-line layout (see Fig. 1). However, this method often produces
+rigid and unnatural text-lines, as it fails to capture the stylistic cohesion inher-
+ent in natural handwriting. Alternatively, directly constructing one generative
+model is typically challenging and impractical for precise editing, as it lacks an
+explicit representation of layout information. To better capture the spatial stylis-
+tic characteristics of text lines, we extend the concept of visual archetypes [31]
+from the character level to the text-line level, a construct we term Template.
+Template is synthesized by arranging resized standard character images from a
+printed font according to the target layout, thereby disentangling character-level
+styles and text-line-level styles to create stylized handwritten text lines. Com-
+                                            Template-Guided Cascaded Diﬀusion                 151
+
+               User                          User                         User
+
+
+
+             Automatic                     Automatic                    Automatic
+             Editable                     Editable                      Editable
+             Performance of               Performance of               Performance of
+             text-line styles             text-line styles             text-line styles
+
+
+
+
+       Writing Machine                Writing Machine              Writing Machine
+       (a) Single-character model   (b) One generative model     (c) Our cascaded diffusion
+       plus manual stitching        w/o style disentanglement    with template guidance
+
+
+
+Fig. 2. User experience comparisons between three diﬀerent methods. Our approach
+enables the generation of complete text-line images in a single process, seamless editing
+using a template and eﬀective preservation of text-line styles.
+
+
+pared to post-processing generated text-line images, directly editing the template
+oﬀers greater ﬂexibility for users and enhances convenience. To construct a high-
+quality template, we propose Layout-Diﬀ, a lightweight 1D model that captures
+the character sizes and inter-character positional relationships within the text
+line.
+    To adapt a ﬁxed-style template to diverse writing styles, we propose the
+Imitating-Diﬀ model(see Fig. 2). This model ensures that each character 1) is
+positioned in alignment with the template, maintaining a similar size, 2) exhibits
+a consistent style that resembles the reference image, and 3) preserves both
+structural accuracy and readability. To reduce computational overhead, we uti-
+lize a pretrained and frozen VAE model from SD1.5 [28] to extract template
+features, ensuring that both noise and template condition features reside in the
+same latent space. To further exploit the high-frequency structural details of
+each character, we ﬁne-tune Imitating-Diﬀ in the pixel space with a frozen VAE
+decoder and high-frequency feature loss, which signiﬁcantly enhances the read-
+ability of characters within the text-line image. Moreover, given the extreme
+aspect ratios of text-line images and limited computational resources, it is also
+crucial to train the model within the latent space.
+    Our contributions can be summarized as follows:
+– We propose a novel cascaded diﬀusion framework designed to disentangle
+  character-level and text-line-level styles. This framework comprises two mod-
+  els: Layout-Diﬀ, which learns spatial styles, and Imitating-Diﬀ, which mimics
+  handwritten styles. These models are systematically integrated through a
+  Template construct.
+– We propose a latent aggregation module that integrates content as well as
+  calligraphy style information into Imitating-Diﬀ, eﬀectively preserving the
+  spatial layout and structural coherence of characters within the text-line while
+  imitating the target writing style.
+152     H. Wang et al.
+
+– We reﬁne Imitating-Diﬀ in the pixel space by incorporating a L1 loss weighted
+  by a high-frequency mask, which enhances the clarity of ﬁne-grained character
+  details, thereby improving overall text-line readability.
+– Extensive experiments on Chinese handwritten text-line datasets validate the
+  eﬀectiveness of our method, demonstrating robust performance in generating
+  stylized handwriting at the line level.
+
+
+2     Related Work
+
+Handwritten data can be stored in the form of online trajectory sequences
+or oﬄine images. The advantage of online handwritten data lies in its ability
+to maintain dynamic trajectory information of the drawing process, while the
+advantage of oﬄine handwritten data lies in its more natural representation of
+visual features such as stroke thickness and ink color.
+Online Handwriting Generation. Most of online handwriting generation
+methods are typically based on autoregressive neural network [12, 49], uti-
+lizing a mixture of Gaussian distributions to model the movement of pen.
+SketchRNN [15], which based on Variational Autoencoders (VAE) [20], adopts
+RNN to conduct the task of unconditional sequence data generation. Subse-
+quently, a series of works [1, 22, 40–42, 50] focuses on conditional generation, aim-
+ing to produce handwriting that encompasses speciﬁc content or diverse writing
+styles. SDT [6] leverages the style-disentangled Transformer to more eﬀectively
+extract style features from reference samples. In addition, there are studies that
+apply diﬀusion models to online sequential data [7, 29, 34], achieving notable
+results.
+Oﬄine Handwriting Generation. Oﬄine handwriting generation meth-
+ods [2, 4, 11, 21, 43] were primarily based on Generative Adversarial Networks
+(GANs) in the early days, leveraging adversarial training to create realistic
+handwriting samples. Recently, with the development of diﬀusion models, an
+increasing number of studies have begun to utilize these models to generate
+oﬄine font data [46]. Diﬀusion models oﬀer a novel framework that reﬁnes ran-
+dom noise into structured handwriting, allowing for more nuanced control over
+style and content. State-of-the-art methods can now extract style information
+from a signiﬁcantly limited number of reference samples [5, 9, 30, 47, 52].
+Score-Based Diﬀusion Model. Score-based diﬀusion models systematically
+perturb data via a forward diﬀusion process, subsequently reversing this pro-
+cess to recover the original data [17, 36, 38]. Due to their capability to balance
+ﬁdelity and diversity, along with advancements in accelerated sampling [3, 27, 37]
+and conditional generation [8, 35], these models have been extensively adopted
+across diverse data modalities. We also adopt diﬀusion models as our generative
+framework.
+                                             Template-Guided Cascaded Diﬀusion                  153
+
+3     Preliminary
+Diﬀusion Formulation. Following [39], we formulate the forward diﬀusion pro-
+cess and reverse denoising process as stochastic diﬀerential equations (SDEs).
+The forward SDE transforms the true data vectors x0 into Gaussian noise:
+                           1
+                    dxt = − βt xt dt + βt dwt , t ∈ [0, T ],                  (1)
+                           2
+where wt represents standard Brownian motion, t ∈ [0, T ] with T as a ﬁnite time
+horizon, and βt is a non-negative noise schedule function. The solution to this
+equation is given by:
+                                                       t
+                              1   t                              1     t
+                  xt = e− 2 0 βs ds x0 +                   βs e− 2 0 βu du dws .                (2)
+                                                   0
+    By utilizing properties of Ito’s integral, the conditional distribution of xt
+given x0 is Gaussian:
+                           p(xt |x0 ) ∼ N (ρ(x0 , t), λt ),                   (3)
+                     1    t                                      t
+where ρ(x0 , t) = e− 2 0 βs ds x0 and λt = I − e− 0 βs ds . The reverse SDE trans-
+forms the Gaussian noise back into the data x0 using the following process:
+
+                         1
+           dxt = −         xt + ∇ log pt (xt ) βt dt +               βt dw̃t ,   t ∈ [0, T ],   (4)
+                         2
+where w̃ denotes the reverse-time Brownian motion. Additionally, we can repre-
+sent the reverse process as an ordinary diﬀerential equation (ODE):
+                         1
+                dxt = − (xt + ∇ log pt (xt )) βt dt, t ∈ [0, T ].             (5)
+                         2
+We train the network as denoiser Eθ to predict the original clean data from noisy
+data:
+                               x̂0 = Eθ (xt , t, c),
+where c represents the additional conditions. We use the predicted xt = 0 to
+estimate the score ∇ log pt (xt ) using λ−1
+                                         t (ρ(x̂0 , t) − xt ), allowing us to sample
+data x0 by starting from Gaussian noise xT ∼ N (0, 1) and numerically solving
+the SDE in Equation (4) or the ODE in Equation (5). The loss function used to
+train the diﬀusion model is expressed as follows:
+
+                                  diﬀ = Ex0 ,t [       x̂0 − x0 22 ].                           (6)
+
+
+4     Methods
+4.1   Overview
+Our goal is to synthesize handwritten text-line images given an arbitrary length
+string A as content and a single style reference image Istyle from a writer ws .
+154     H. Wang et al.
+
+
+
+
+Fig. 3. The overall architecture of the proposed cascaded diﬀusion model. Given the
+user-provided text input A and style reference image Istyle , our framework is capable
+of generating customized handwritten text-line images. All vae modules remain frozen.
+LAM represents latent aggregation module.
+
+
+                L
+Here, A = {ai }i=1 is a sequence of length L, where each ai is a Unicode character,
+encompassing Chinese characters, English letters, digits, punctuation and other
+symbols. The generated handwritten text-line images should faithfully capture
+the distinctive style of ws while accurately conveying the content of A. Fur-
+thermore, the spatial arrangement of characters must be ﬂuid, maintaining the
+natural rhythm of handwritten text-line.
+    Existing methods are limited to generating single Chinese characters images
+and fail to handle more complex text content. To address this limitation, we
+propose a cascaded diﬀusion framework that systematically structures the gen-
+eration process(see Fig. 3). Speciﬁcally, a layout style encoder and an image style
+encoder are employed to capture text-line-level and character-level styles, respec-
+tively. These multi-level style features are then injected into the corresponding
+UNet model via cross-attention. In Imitating-Diﬀ, template information is fused
+with the noisy latent through concatenation. During training, the template is
+directly extracted from the input image, whereas during inference, it is synthe-
+sized by Layout-Diﬀ.
+                                       Template-Guided Cascaded Diﬀusion       155
+
+4.2   Layout-Diﬀ
+Text-Line Template. As stated before, the objective of Layout-Diﬀ is to gen-
+erate a text-line template, which serves as the content information for Imitating-
+Diﬀ. Text-line template comprises the bounding box of each character and their
+corresponding standard font images. Speciﬁcally, the bounding box deﬁnes the
+position and size of each character within the text-line image. The bounding box
+coordinates are converted into normalized values representing the height, width,
+the vertical distance from the top of each character to the top of the text line,
+and the horizontal distance between the centers of adjacent chactarers. We use
+the SimHei font as standard character images. We resize the height and width of
+standard character images and embed them into their corresponding bounding
+boxes in a blank canvas to construct the standard text-line-level templates.
+Module Architecture. The layout of a text line refers to the bounding box
+coordinates for all the characters. As shown in Fig. 3, the Layout-Diﬀ ﬁrstly
+takes the text input A and the layout of the style reference image Istyle as input,
+and predicts the layout of the target text-line image. The generative process is
+modeled using the diﬀusion process, with a 1D U-Net network serving as the
+denoising model ˆθ .
+    More concretely, considering that diﬀerent characters have diﬀerent shapes,
+(especially punctuation marks), we set a learnable encoding for each character
+class i: Embi ∈ Rd , where d is the dimension of the encoding vector. To account
+for the distinct layout styles exhibited by diﬀerent authors, we condition the
+model on the layout of the reference image Istyle . Speciﬁcally, the reference
+layout information Layoutref , added with the reference character embeddings
+Embref , is processed through a 1D layout style encoder Eref , which mirrors the
+architecture of the 1D U-Net encoder. The resulting style layout features Fref
+are then fed into the denoiser via cross-attention.
+Training Objective. We model the reconstruction loss as the average distance
+between the predicted layout and the actual counterpart. Here t , ˆθ represents
+the added true noise and predicted noise at timestep t, while xt represents the
+noisy data at timestep t:
+
+
+                      Fref = Eref (Layoutref , Embref ),
+                Ldiﬀ-layout = E [ ˆθ (xt , t, EmbA , Fref ) − t 22 ].          (7)
+
+4.3   Imitating-Diﬀ
+The objective of Imitating-Diﬀ is to transfer the text-line template image
+obtained to a stylized handwritten text-line image. A primary challenge lies in
+the signiﬁcant computational cost, considering the enormous size of the text-line
+image. To address this, as shown in Fig. 3, our method integrates a pretrained
+frozen VAE, a CNN-Transformer style encoder, a latent aggregation module,
+and a UNet-based denoiser to form a conditional latent diﬀusion model.
+156    H. Wang et al.
+
+Leveraging the pretrained VAE encoder, we reduce the resolution of all text-line
+images and templates by a factor of 8, transforming them from 96×2048 pix-
+els to a 12×256 latent vectors. This reduction signiﬁcantly saves computational
+resources, enhancing both training and inference eﬃciency. The generated latent
+features are ﬁnally mapped into the pixel space by the VAE decoder.
+    Another challenge is to ensure the accurate positioning and structure of char-
+acters, as deﬁned in the template. For single-character generation models like
+One-DM [5], directly replacing the character template with the text-line tem-
+plate often results in improper allocation of characters, despite the presence of
+a content-style aggregation module. To address this issue, we design the Latent
+Aggregation Module to enable the model to better incorporate both content and
+style information.
+Latent Aggregation Module. In the ﬁeld of handwritten text generation,
+latent space-based diﬀusion methods [5, 30, 47, 52] integrate text information into
+the diﬀusion model via cross-attention. In contrast, pixel space-based diﬀusion
+approaches, such as CG-DDPM [47], take a noisy image combined with a ren-
+dered glyph image as input to the U-Net. A key innovation of our work lies in
+demonstrating the eﬀectiveness of template concatenation in the latent space,
+thereby eliminating the computational overhead associated with training a con-
+tent encoder and employing additional cross-attention mechanisms.
+    As shown in Fig. 3, we compress the template image Itemplate into the latent
+template ztemplate using the same pretrained, frozen VAE encoder as latent dif-
+fusion model. Both the latent template ztemplate and the latent noise zt are pro-
+cessed through separate convolutional layers, after which they are concatenated
+to ẑt and fed into the U-Net model for further computation. The latent template
+image, with its blurred spatial information, helps guide the layout during the
+entire generation process.
+
+
+                   ztemplate = VAEen (Itemplate ),
+                           ẑt = Conv(ztemplate ) ⊕ Conv(zt ).                 (8)
+In order to mimic a speciﬁc writing style, the style image Istyle is passed through
+a CNN-Transformer encoder Estyle to extract the style features Fstyle , which are
+injected into the denoiser backbone via cross-attention.
+Training Objective. The training loss is deﬁned in the latent space as the
+expectation of the L2 noise prediction error, denoted as Ldiﬀ-Latent :
+
+
+                        Fstyle = Estyle (Istyle ),
+                    Ldiﬀ-latent = E [ ˆθ (ẑt , t, Fstyle ) − t 22 ],          (9)
+where ˆθ represents the predicted noise modeled by Imitating-Diﬀ.
+Fine-Tuning in the Pixel Space. To address issues such as detail loss and
+stroke blurring caused by latent space diﬀusion models, we propose to ﬁne-
+tune the Imitating-Diﬀ in pixel space. The VAE decoder up-scales the latent
+                                         Template-Guided Cascaded Diﬀusion       157
+
+
+
+
+Fig. 4. Handwritten text-line images and corresponding high-frequency masks. We
+observe that character-level styles—such as stroke thickness, character contours, and
+cursive joins—are further enhanced and more prominently emphasized.
+
+
+representations back to the original pixel space, allowing for the computation of
+the L1 distance in pixel space (see Fig. 3).
+    Moreover, to encourage the Imitating-Diﬀ to focus on structural details and
+generate characters with clearer and smoother strokes, we employ a Sobel ker-
+nel to extract the high-frequency components of the target text-line image x0
+to construct a high-frequency mask Sobel(x0 ) with the same shape of x0 (see
+Fig. 4). The pixel-level loss Ldiﬀ-pixel , is deﬁned as the expectation of L1 noise
+prediction error weighted by high-frequency mask ω(x0 ). The ﬁnal ﬁne-tuning
+loss Ldiﬀ-ft , is a weighted sum of Ldiﬀ-pixel and Ldiﬀ-latent :
+
+
+               Ldiﬀ-ft = λlatent · Ldiﬀ-latent + Ldiﬀ-pixel ,
+            Ldiﬀ-pixel = E [ ω(x0 ) (VAEde (ˆt ) − VAEde ( t )) 1 ],
+               ω(x0 ) = λSobel · Sobel(x0 ) + λall · 1,                         (10)
+
+where 1 represents a matrix with the size of x0 in which all entries are equal to
+one. Notably, the pretrained VAE model parameters are kept frozen during this
+process.
+
+
+5     Experiments
+5.1   Experimental Settings
+Evaluation Dataset. To evaluate the performance of our method, we use the
+CASIA-HWDB2.0-2.2 dataset [25] for training, which contains 52,230 Chinese
+text-lines from 1,019 distinct writers. For testing the style transfer capability of
+our method, we employ the ICDAR2013 dataset [48], which consists of 10,449
+Chinese text-lines from 60 diﬀerent writers. For layout generation, we set the
+158    H. Wang et al.
+
+number of bounding boxes in a text line to 32, reﬂecting the typical writing
+habits of most individuals. Speciﬁcally, we pad target layouts with zeros and
+repeat the previous part of the text line for style layouts. For text-line image
+generation, all authentic text-line images are resized to a height of 96 pixels
+while maintaining their aspect ratio, and padded to a width of 2048 pixels. For
+template and target text-line images, we pad with pixels of value 255, while for
+style reference images, we repeat the previous part.
+Evaluation Metrics. We evaluate the quality of layout generation based on
+multiple factors, including character height, width, vertical spacing, and the
+inter-character center distances. The L1 losses for all layout-related metrics are
+computed on a normalized image, where the height is scaled to 1.
+    To assess the style quality of text-line generation, we adopt three style met-
+rics: the Fréchet Inception Distance (FID) [16], the Geometry Score (GS) [19]
+and the Style Score. For the style score, we train a CNN-Transformer encoder
+on the test dataset for style classiﬁcation task. For all style metrics, we ﬁrst
+compute the values for each writer in the test dataset, then calculate the mean
+across all writers’ values.
+    To evaluate the structural accuracy of generated text-lines, we employ two
+content metrics: Correct Rate (CR) and Accuracy Rate (AR) [48]. These met-
+rics are computed using a pretrained handwritten Chinese text line recognition
+model, which transcribes each text line into a character string.
+Implementation Details. In all experiments, we use only one style reference
+sample to perform one-shot experiments (one text-line for layout and text-line
+generation). We train all conditional diﬀusion models on eight A6000 GPUs.
+Speciﬁcally, we train the Layout-Diﬀ for 60,000 steps with a batch size of 1024.
+The Imitating-Diﬀ is then trained for 200 epochs with a batch size of 20, followed
+by ﬁne-tuning for 30 epochs with a batch size of 6. The ﬁne-tuning loss weight
+ratio, λlatent is 0.1, λSobel is 0.7 and λall is 0.3. AdamW optimizer with β1 = 0.9
+and β2 = 0.999 is used. The learning rate is set as 1e−4 with linear schedule
+for both training and ﬁne-tuning. During inference, DDIM is used to speed up
+sampling with 25 steps.
+Compared Methods. We compare our Imitating-Diﬀ with one-shot handwrit-
+ten character generation models, including FontDiﬀuser [46], GAC-Diﬀ [47], and
+One-DM [5], all of which are adapted to generate coherent text-line images.
+For FontDiﬀuser and GAC-Diﬀ, which already incorporate multi-scale content
+aggregation modules (or their variants), we simply replace the character tem-
+plate with a text-line template and substitute the font style reference with a
+text-line style reference. In the case of One-DM, we introduce additional posi-
+tional embeddings (PE) or employ our proposed latent aggregation module (LA)
+to generate text-line images.
+
+5.2   Evaluations
+Text-line Layout Generation. We compare our Layout-Diﬀ with other lay-
+out generation models [33] LayoutLSTM and LayoutTransformer. Quantitative
+                                       Template-Guided Cascaded Diﬀusion         159
+
+          Table 1. The comparison of diﬀerent layout generative methods.
+
+                         Height Loss Width Loss Vertical Loss Horizontal Loss
+      LayoutLSTM        0.1133       0.1023      0.1137       0.1268
+      LayoutTransformer 0.1075       0.1067      0.1193       0.1222
+      LayoutDiﬀuser     0.1028       0.0915      0.0673       0.1118
+
+
+
+
+Fig. 5. Visualization of layouts generated by diﬀerent methods. Black boxes denote
+the ground truth, while red boxes represent the generated layouts. The results illus-
+trate that our layout generation model more eﬀectively captures text-line-level style
+characteristics, demonstrating improved ﬁdelity to the target structure. (Color ﬁgure
+online)
+
+
+results are shown in Table 1. Through this in-context learning approach, the
+model can imitate the text-line-level style (e.g. textline slant) of the reference
+sample to a certain degree. However, Fig. 5 shows that both LayoutTransformer
+and LayoutLSTM underperform compared to the LayoutDiﬀuser model in terms
+of generating accurate character spacing and character size. We hypothesize that
+this underperformance may be attributed to exposure bias inherent in autore-
+gressive models during the inference process, leading to cumulative errors in text
+line generation. In contrast, diﬀusion models are less susceptible to this issue.
+
+Stylized Handwritten Text-Line Generation. We present the quantitative
+results on the ICDAR2013 dataset in Table 2. It is evident that models trained
+in the latent space, including One-DM variants and Imitating-Diﬀ, outperform
+those trained in the pixel space, such as FontDiﬀuser and GAC-Diﬀ. As shown in
+Fig. 6, we observe that models trained in the pixel space tend to generate char-
+acters with dark ink color and thick strokes, failing to capture the full range of
+reference styles. This phenomenon may be attributed to the excessively strong
+guidance of content information during diﬀusion training, which hinders the
+adequate learning of style feature extraction and fusion. Furthermore, it is rea-
+sonable that pixel-space-based methods achieve signiﬁcantly higher CR and AR
+values, as these models tend to generate characters that closely resemble printed
+fonts, making them more easily recognizable.
+    When comparing with One-DM variants and Imitating-Diﬀ, we observe that
+although they perform similarly in the FID metric, Imitating-Diﬀ excels in style
+score metrics and content metrics. Combined with the visualization results in
+160     H. Wang et al.
+
+                      Table 2. Compared with other methods.
+
+                                    FID (↓) GS (↓)      Style Score (↑) CR (↑) AR (↑)
+ FontDiﬀuser                       75.61    3.66E−04 3.80              92.69   92.49
+ GAC-Diﬀ                           76.14    3.62E−04 7.40              92.95   92.77
+ OnE−DM + PE                       42.30    1.90E−03 19.70             35.29   30.05
+ OnE−DM + LA                       44.66    1.11E−03 20.10             73.19   72.33
+ Imitating-Diﬀ (4 channel latent) 38.25     1.61E−04 53.40             81.51   80.75
+ Imitating-Diﬀ (16 channel latent) 33.33    1.12E−04 56.20             89.99   89.13
+
+
+
+
+Fig. 6. Qualitative comparisons between our method with other character-based meth-
+ods on handwritten text-line generation. We utilize the same template image and style
+reference image. Our model eﬀectively captures the handwriting style of text lines while
+preserving the structural integrity of individual characters, thereby generating images
+of superior quality compared to other models.
+
+
+Fig. 6, Imitating-Diﬀ exhibits fewer instances of missing or redundant strokes,
+as well as reduced structural distortions. We attribute this improvement to the
+ﬁne-tuning in pixel space, complemented by our proposed high-frequency loss. To
+mitigate compression-induced information loss, we replace the SD1.5 VAE [35]
+with the higher-capacity SD3.5 VAE [10], which increases the latent channel
+dimension from 4 to 16. As shown in Table 2, this enhances both structural
+ﬁdelity and stylistic diversity.
+
+Ablation Study. We use the One-DM model as our baseline. Due to its inabil-
+ity to generate reasonable text-line images, we omit the quantitative results
+of the baseline model from the Table 3. The results highlight the eﬀectiveness
+of the ﬁne-tuning loss, as performance is signiﬁcantly improved in models both
+with and without the style-content aggregation modules. Additionally, the visual
+results Fig. 7 demonstrate that models trained with our proposed pixel-level loss
+                                        Template-Guided Cascaded Diﬀusion          161
+
+                   Table 3. Ablation Study of Proposed Modules.
+
+                                FID (↓) GS (↓)     Style Score (↑) CR (↑) AR (↑)
+    Baseline + PE            44.38      4.85E−03 23.60             32.00 25.24
+    BaseLine + LA            44.90      1.70E−04 19.60             80.15 79.38
+    Baseline - SCF + LA      39.77      8.61E−05 41.70             78.05 77.12
+    Baseline + LA + FT       42.12      9.29E−05 37.30             80.04 80.32
+    Baseline - SCF + LA + FT 38.25      1.61E−04 53.40             81.51 80.75
+
+
+
+
+Fig. 7. Visualization of Ablation Experiments, where LA represents latent aggregation
+module, SCF represents style content fusion module, FT represents ﬁne-tuning in the
+pixel space. We ﬁnd that ﬁne-tuning in the pixel space signiﬁcantly enhances the accu-
+racy of content structure preservation. Furthermore, the style-content fusion module
+proves to be unnecessary, thereby substantially reducing computational overhead.
+
+
+produce characters with clearer and more deﬁned structures. Furthermore, we
+observe that leaving out the style-content fusion module enhances the model’s
+ability to mimic style characteristics. This improvement is likely due to the possi-
+bility that excessive content fusion hinders the model’s ability to learn distinctive
+writing styles.
+
+Linear Style Interpolation. To further investigate the latent space learned
+by our Imitating-Diﬀ, we conduct linear style interpolation experiments between
+diﬀerent writers, with the visualization results shown in Fig. 8. For the transi-
+tion from writer C003 to C057, the characters evolve from cursive to neat, and
+the ink color intensiﬁes from light to dark. Conversely, the transition from writer
+C029 to C027 demonstrates a shift in ink color from dark to light and a transfor-
+mation in character structure from compact to sparse. These results reveal that
+the generated text-line images smoothly transition between styles, including ink
+162     H. Wang et al.
+
+
+
+
+Fig. 8. Visualization of latent linear interpolation. During style transitions, the con-
+tent template remains ﬁxed while linear interpolation is applied to the extracted style
+features.
+
+
+color and stroke thickness, while maintaining the integrity of the original textual
+content.
+
+Generation with the Same Text in Diﬀerent Styles. As illustrated in
+Fig. 9, Layout-Diﬀ and Imitating-Diﬀ are employed to generate text lines in 6
+randomly selected styles from the test dataset, using the same content (a Chinese
+classical poem). We observe that writers C041, C056, and C002 exhibit larger
+character spacing compared to writers C005, C057, and C029. Consequently,
+the generated images for C041, C056, and C002 tend to be longer than those
+for C005, C057, and C029. Meanwhile, the ink colors are well preserved in the
+generated images. The results demonstrate that the proposed pipeline eﬀectively
+replicates diverse styles while preserving the structural integrity in the majority
+                                         Template-Guided Cascaded Diﬀusion          163
+
+
+
+
+Fig. 9. The visualization of text lines generated by Layout-Diﬀ and Imitating-Diﬀ,
+based on user-provided content, demonstrates that our two-stage diﬀusion models eﬀec-
+tively capture both text-line-level and character-level stylistic features.
+
+
+of cases. The primary limits of performance lies in maintaining the accuracy of
+the glyph structure.
+
+6   Conclusion and Future Work
+In this paper, we propose a novel framework for stylized oﬄine Chinese hand-
+written text-line generation that integrates glyph templates with Layout-Diﬀ
+and Imitating-Diﬀ to disentangle line- and character-level styles. Through latent
+aggregation and high-frequency ﬁne-tuning, the model preserves character struc-
+ture while capturing stylistic variation. Future work will explore its extension to
+multilingual scripts.
+
+Acknowledgments. This work is supported by the Natural Science Foundation of
+China (NSFC) Grant No. U23B2029 and No. 62276258.
+
+
+References
+ 1. Aksan, E., Pece, F., Hilliges, O.: Deepwriting: making digital ink editable via deep
+    generative modeling. In: Proceedings of the CHI Conference on Human Factors in
+    Computing Systems, pp. 1–14 (2018)
+164     H. Wang et al.
+
+ 2. Alonso, E., Moysset, B., Messina, R.: Adversarial generation of handwritten text
+    images conditioned on sequences. In: International Conference on Document Anal-
+    ysis and Recognition, pp. 481–486 (2019)
+ 3. Bao, F., Li, C., Zhu, J., Zhang, B.: Analytic-DPM: an analytic estimate of the opti-
+    mal reverse variance in diﬀusion probabilistic models. In: International Conference
+    on Learning Representations (2021)
+ 4. Bhunia, A.K., Khan, S., Cholakkal, H., Anwer, R.M., Khan, F.S., Shah, M.: Hand-
+    writing transformers. In: Proceedings of the IEEE/CVF International Conference
+    on Computer Vision, pp. 1086–1094 (2021)
+ 5. Dai, G., Zhang, Y., Ke, Q., Guo, Q., Huang, S.: One-DM: one-shot diﬀusion
+    mimicker for handwritten text generation. In: European Conference on Computer
+    Vision (2024)
+ 6. Dai, G., et al.: Disentangling writer and character styles for handwriting generation.
+    In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+    Recognition, pp. 5977–5986 (2023)
+ 7. Das, A., Yang, Y., Hospedales, T., Xiang, T., Song, Y.Z.: ChiroDiﬀ: modelling
+    chirographic data with diﬀusion models. In: International Conference on Learning
+    Representations (2023)
+ 8. Dhariwal, P., Nichol, A.: Diﬀusion models beat GANs on image synthesis. Adv.
+    Neural. Inf. Process. Syst. 34, 8780–8794 (2021)
+ 9. Ding, H., Luan, B., Gui, D., Chen, K., Huo, Q.: Improving handwritten OCR with
+    training samples generated by glyph conditional denoising diﬀusion probabilistic
+    model. In: International Conference on Document Analysis and Recognition, pp.
+    20–37 (2023)
+10. Esser, P., et al.: Scaling rectiﬁed ﬂow transformers for high-resolution image syn-
+    thesis. In: Forty-First International Conference on Machine Learning (2024)
+11. Gan, J., Wang, W.: HiGAN: handwriting imitation conditioned on arbitrary-length
+    texts and disentangled styles. In: Proceedings of the AAAI Conference on Artiﬁcial
+    Intelligence, vol. 35, pp. 7484–7492 (2021)
+12. Graves, A.: Generating sequences with recurrent neural networks. arXiv preprint
+    arXiv:1308.0850 (2013)
+13. Guan, H., et al.: Deciphering oracle bone language with diﬀusion models. In:
+    Annual Meeting of the Association for Computational Linguistics (2024)
+14. Gui, D., Chen, K., Ding, H., Huo, Q.: Zero-shot generation of training data with
+    denoising diﬀusion probabilistic model for handwritten Chinese character recog-
+    nition. In: International Conference on Document Analysis and Recognition, pp.
+    348–365 (2023)
+15. Ha, D., Eck, D.: A neural representation of sketch drawings. In: International
+    Conference on Learning Representations (2018)
+16. Heusel, M., Ramsauer, H., Unterthiner, T., Nessler, B., Hochreiter, S.: GANs
+    trained by a two time-scale update rule converge to a local NASH equilibrium.
+    In: Advances in Neural Information Processing Systems, vol. 30 (2017)
+17. Ho, J., Jain, A., Abbeel, P.: Denoising diﬀusion probabilistic models 2020. In:
+    International Conference on Learning Representations (2021)
+18. Kang, L., Riba, P., Rusinol, M., Fornes, A., Villegas, M.: Content and style aware
+    generation of text-line images for handwriting recognition. IEEE Trans. Pattern
+    Anal. Mach. Intell. 44(12), 8846–8860 (2021)
+19. Khrulkov, V., Oseledets, I.: Geometry score: a method for comparing generative
+    adversarial networks. In: International conference on machine learning, pp. 2621–
+    2629 (2018)
+                                         Template-Guided Cascaded Diﬀusion          165
+
+20. Kingma, D.P., Welling, M.: Auto-encoding variational Bayes. In: International
+    Conference on Learning Representations (2014)
+21. Kong, Y., et al.: Look closer to supervise better: one-shot font generation via
+    component-based discriminator. In: Proceedings of the IEEE/CVF Conference on
+    Computer Vision and Pattern Recognition, pp. 13482–13491 (2022)
+22. Kotani, A., Tellex, S., Tompkin, J.: Generating handwriting via decoupled style
+    descriptors. In: European Conference on Computer Vision, pp. 764–780 (2020)
+23. Lian, Z., Zhao, B., Chen, X., Xiao, J.: Easyfont: a style learning-based system to
+    easily build your large-scale handwriting fonts. ACM Trans. Graph. 38(1), 1–18
+    (2018)
+24. Lin, J.W., Hong, C.Y., Chang, R.I., Wang, Y.C., Lin, S.Y., Ho, J.M.: Complete font
+    generation of Chinese characters in personal handwriting style. In: International
+    Performance Computing and Communications Conference, pp. 1–5 (2015)
+25. Liu, C.L., Yin, F., Wang, D.H., Wang, Q.F.: Casia online and oﬄine Chinese
+    handwriting databases. In: International Conference on Document Analysis and
+    Recognition, pp. 37–41 (2011)
+26. Liu, W., Liu, F., Ding, F., He, Q., Yi, Z.: XMP-font: self-supervised cross-modality
+    pre-training for few-shot font generation. In: Proceedings of the IEEE/CVF Con-
+    ference on Computer Vision and Pattern Recognition, pp. 7905–7914 (2022)
+27. Lu, C., Zhou, Y., Bao, F., Chen, J., Li, C., Zhu, J.: DPM-solver: a fast ode solver
+    for diﬀusion probabilistic model sampling in around 10 steps. Adv. Neural. Inf.
+    Process. Syst. 35, 5775–5787 (2022)
+28. Lugmayr, A., Danelljan, M., Romero, A., Yu, F., Timofte, R., Van Gool, L.:
+    Repaint: inpainting using denoising diﬀusion probabilistic models. In: Proceed-
+    ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+    pp. 11461–11471 (2022)
+29. Luhman, T., Luhman, E.: Diﬀusion models for handwriting generation. arXiv
+    preprint arXiv:2011.06704 (2020)
+30. Nikolaidou, K., et al.: Wordstylist: styled verbatim handwritten text generation
+    with latent diﬀusion models. In: International Conference on Document Analysis
+    and Recognition, pp. 384–401 (2023)
+31. Pippi, V., Cascianelli, S., Cucchiara, R.: Handwritten text generation from visual
+    archetypes. In: Proceedings of the IEEE/CVF Conference on Computer Vision and
+    Pattern Recognition, pp. 22458–22467 (2023)
+32. Radford, A., Metz, L., Chintala, S.: Unsupervised representation learning with
+    deep convolutional generative adversarial networks. In: International Conference
+    on Learning Representations (2016)
+33. Ren, M.S., Zhang, Y.M., Chen, Y.: Decoupling layout from glyph in online Chinese
+    handwriting generation. arXiv e-prints, pp. arXiv–2410 (2024)
+34. Ren, M.S., Zhang, Y.M., Wang, Q.F., Yin, F., Liu, C.L.: Diﬀ-writer: A diﬀusion
+    model-based stylized online handwritten Chinese character generator. In: Interna-
+    tional Conference on Neural Information Processing, pp. 86–100 (2023)
+35. Rombach, R., Blattmann, A., Lorenz, D., Esser, P., Ommer, B.: High-resolution
+    image synthesis with latent diﬀusion models (2021)
+36. Sohl-Dickstein, J., Weiss, E.A., Maheswaranathan, N., Ganguli, S.: Deep unsuper-
+    vised learning using nonequilibrium thermodynamics. In: Proceedings of Interna-
+    tional Conference on International Conference on Machine Learning (2015)
+37. Song, J., Meng, C., Ermon, S.: Denoising diﬀusion implicit models. In: International
+    Conference on Learning Representations (2020)
+38. Song, Y., Ermon, S.: Generative modeling by estimating gradients of the data
+    distribution. In: Advances in Neural Information Processing Systems, vol. 32 (2019)
+166     H. Wang et al.
+
+39. Song, Y., Sohl-Dickstein, J., Kingma, D.P., Kumar, A., Ermon, S., Poole, B.: Score-
+    based generative modeling through stochastic diﬀerential equations. In: Interna-
+    tional Conference on Learning Representations (2021)
+40. Tang, S., Lian, Z.: Write like you: synthesizing your cursive online Chinese hand-
+    writing via metric-based meta learning. Comput. Graph. Forum 40(2), 141–151
+    (2021)
+41. Tang, S., Xia, Z., Lian, Z., Tang, Y., Xiao, J.: FontRNN: generating large:cale
+    Chinese fonts via recurrent neural network. Comput. Graph. Forum 38(7), 567–
+    577 (2019)
+42. Tolosana, R., Delgado-Santos, P., Perez-Uribe, A., Vera-Rodriguez, R., Fierrez,
+    J., Morales, A.: DeepWritesyn: on-line handwriting synthesis via deep short-term
+    representations. In: Proceedings of the AAAI Conference on Artiﬁcial Intelligence,
+    vol. 35, pp. 600–608 (2021)
+43. Xie, Y., Chen, X., Sun, L., Lu, Y.: DG-Font: deformable generative networks for
+    unsupervised font generation. In: Proceedings of the IEEE/CVF Conference on
+    Computer Vision and Pattern Recognition, pp. 5130–5140 (2021)
+44. Xu, P., Hospedales, T.M., Yin, Q., Song, Y.Z., Xiang, T., Wang, L.: Deep learning
+    for free-hand sketch: a survey. IEEE Trans. Pattern Anal. Mach. Intell. 45(1),
+    285–312 (2022)
+45. Xu, S., Jin, T., Jiang, H., Lau, F.C.: Automatic generation of personal Chinese
+    handwriting by capturing the characteristics of personal handwriting. In: Twenty-
+    First IAAI Conference (2009)
+46. Yang, Z., Peng, D., Kong, Y., Zhang, Y., Yao, C., Jin, L.: FontDiﬀuser: one-shot
+    font generation via denoising diﬀusion with multi-scale content aggregation and
+    style contrastive learning. In: Association for the Advancement of Artiﬁcial Intel-
+    ligence (2024)
+47. Yao, G., et al.: Geometric-aware control in diﬀusion model for handwritten Chinese
+    font generation. In: International Conference on Document Analysis and Recogni-
+    tion, pp. 3–17 (2024)
+48. Yin, F., Wang, Q.F., Zhang, X.Y., Liu, C.L.: ICDAR 2013 Chinese handwriting
+    recognition competition. In: International Conference on Document Analysis and
+    Recognition, pp. 1464–1470 (2013)
+49. Zhang, X.Y., Yin, F., Zhang, Y.M., Liu, C.L., Bengio, Y.: Drawing and recogniz-
+    ing Chinese characters with recurrent neural network. IEEE Trans. Pattern Anal.
+    Mach. Intell. 40, 849–862 (2016)
+50. Zhao, B., Tao, J., Yang, M., Tian, Z., Fan, C., Bai, Y.: Deep imitator: handwriting
+    calligraphy imitation via deep attention networks. Patteren Recognit. 104, 107080
+    (2020)
+51. Zhu, J.Y., Park, T., Isola, P., Efros, A.A.: Unpaired image-to-image translation
+    using cycle-consistent adversarial networks. In: Proceedings of the IEEE Interna-
+    tional Conference on Computer Vision, pp. 2223–2232 (2017)
+52. Zhu, Y., Li, Z., Wang, T., He, M., Yao, C.: Conditional text image generation
+    with diﬀusion models. In: Proceedings of the IEEE/CVF Conference on Computer
+    Vision and Pattern Recognition, pp. 14235–14245 (2023)
+

@@ -1,0 +1,34 @@
+{
+  "experiment": "training_demo_cfg1_diagnostic",
+  "device": "cuda:0",
+  "dtype": "float32",
+  "characters": [
+    "潮",
+    "舶",
+    "镀"
+  ],
+  "references": [
+    "vendor/FontDiffuser/data_examples/train/TargetImage/FZGuanJKSJW/FZGuanJKSJW+氮.jpg",
+    "vendor/FontDiffuser/data_examples/train/TargetImage/FZOuYHGXSJW/FZOuYHGXSJW+氮.jpg",
+    "vendor/FontDiffuser/data_examples/train/TargetImage/FZZCHJW/FZZCHJW+氮.jpg"
+  ],
+  "content_font": "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc",
+  "font_index": 2,
+  "resolution": 96,
+  "steps": 20,
+  "guidance_scale": 1.0,
+  "seed": 123,
+  "output_dir": "experiments/training_demo_001/sampling_cfg1",
+  "content_images": {
+    "潮": "vendor/FontDiffuser/data_examples/train/ContentImage/潮.jpg",
+    "舶": "vendor/FontDiffuser/data_examples/train/ContentImage/舶.jpg",
+    "镀": "vendor/FontDiffuser/data_examples/train/ContentImage/镀.jpg"
+  },
+  "kind": "sampling_after_1000_step_demo_training",
+  "run_note": "Random initialization, 1000 steps, 12 official font targets. Seen font styles and characters only; not a general handwriting foundation model.",
+  "limitations": [
+    "Training example styles and characters; not a held-out test.",
+    "12 target images are insufficient to train a general model.",
+    "No personal handwriting, CASIA or reliable OCR/FID/HWD evaluation."
+  ]
+}

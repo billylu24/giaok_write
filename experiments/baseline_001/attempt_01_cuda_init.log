@@ -1,0 +1,26 @@
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/dynamic_modules_utils.py:90: SyntaxWarning: invalid escape sequence '\s'
+  relative_imports = re.findall("^\s*import\s+\.(\S+)\s*$", content, flags=re.MULTILINE)
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/dynamic_modules_utils.py:92: SyntaxWarning: invalid escape sequence '\s'
+  relative_imports += re.findall("^\s*from\s+\.(\S+)\s+import", content, flags=re.MULTILINE)
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/dynamic_modules_utils.py:134: SyntaxWarning: invalid escape sequence '\s'
+  imports = re.findall("^\s*import\s+(\S+)\s*$", content, flags=re.MULTILINE)
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/dynamic_modules_utils.py:136: SyntaxWarning: invalid escape sequence '\s'
+  imports += re.findall("^\s*from\s+(\S+)\s+import", content, flags=re.MULTILINE)
+The cache for model files in Transformers v4.22.0 has been updated. Migrating your old cache. This is a one-time only operation. You can interrupt this and resume the migration later on by calling `transformers.utils.move_cache()`.
+0it [00:00, ?it/s]0it [00:00, ?it/s]
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/dpm_solver/dpm_solver_pytorch.py:53: SyntaxWarning: invalid escape sequence '\h'
+  The `alphas_cumprod` is the \hat{alpha_n} arrays in the notations of DDPM. Specifically, DDPMs assume that
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Traceback (most recent call last):
+  File "/home/giaok/PycharmProjects/giaok_write/scripts/run_baseline.py", line 109, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/home/giaok/PycharmProjects/giaok_write/scripts/run_baseline.py", line 48, in main
+    torch.cuda.reset_peak_memory_stats(device)
+  File "/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/torch/cuda/memory.py", line 397, in reset_peak_memory_stats
+    return torch._C._cuda_resetPeakMemoryStats(device)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Invalid device argument 

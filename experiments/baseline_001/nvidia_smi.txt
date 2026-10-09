@@ -1,0 +1,28 @@
+Fri Oct  9 00:55:46 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 595.91.07              Driver Version: 595.91.07      CUDA Version: 13.2     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 5070        Off |   00000000:01:00.0  On |                  N/A |
+|  0%   38C    P1             17W /  175W |    3383MiB /  12227MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A            6483    C+G   ...c/gnome-remote-desktop-daemon        164MiB |
+|    0   N/A  N/A            6524      G   /usr/bin/gnome-shell                    739MiB |
+|    0   N/A  N/A            7004      G   /usr/bin/Xwayland                         8MiB |
+|    0   N/A  N/A           10052    C+G   ...rack-uuid=3190708988185955192        377MiB |
+|    0   N/A  N/A           13957      G   ...2/log/jcef_chromium_12813.log         43MiB |
+|    0   N/A  N/A          333097      G   ...rack-uuid=3190708988185955192        120MiB |
+|    0   N/A  N/A          345169    C+G   ptyxis                                   39MiB |
+|    0   N/A  N/A          365554      C   ...local/lib/ollama/llama-server       1428MiB |
+|    0   N/A  N/A          366245      C   .venv/bin/python                        164MiB |
++-----------------------------------------------------------------------------------------+

@@ -1,0 +1,2025 @@
+                                                One-DM: One-Shot Diffusion Mimicker for
+                                                     Handwritten Text Generation
+
+                                                                       Gang Dai1⋆ , Yifan Zhang2,3⋆ ,
+                                                                  1
+                                                      Quhui Ke        , Qiangya Guo1 , and Shuangping Huang1,4†
+
+                                                                South China University of Technology
+                                                                  1
+
+
+
+
+arXiv:2409.04004v2 [cs.CV] 11 Sep 2024
+                                                  National University of Singapore, 3 Skywork AI, 4 Pazhou Laboratory
+                                                  2
+
+                                                  {eedaigang@mail., eehsp@}scut.edu.cn, yifan.zhang@u.nus.edu
+
+
+
+                                                 Abstract. Existing handwritten text generation methods often require
+                                                 more than ten handwriting samples as style references. However, in prac-
+                                                 tical applications, users tend to prefer a handwriting generation model
+                                                 that operates with just a single reference sample for its convenience and
+                                                 efficiency. This approach, known as “one-shot generation”, significantly
+                                                 simplifies the process but poses a significant challenge due to the diffi-
+                                                 culty of accurately capturing a writer’s style from a single sample, es-
+                                                 pecially when extracting fine details from the characters’ edges amidst
+                                                 sparse foreground and undesired background noise. To address this prob-
+                                                 lem, we propose a One-shot Diffusion Mimicker (One-DM) to generate
+                                                 handwritten text that can mimic any calligraphic style with only one
+                                                 reference sample. Inspired by the fact that high-frequency information
+                                                 of the individual sample often contains distinct style patterns (e.g., char-
+                                                 acter slant and letter joining), we develop a novel style-enhanced module
+                                                 to improve the style extraction by incorporating high-frequency compo-
+                                                 nents from a single sample. We then fuse the style features with the text
+                                                 content as a merged condition for guiding the diffusion model to produce
+                                                 high-quality handwritten text images. Extensive experiments demon-
+                                                 strate that our method can successfully generate handwriting scripts
+                                                 with just one sample reference in multiple languages, even outperform-
+                                                 ing previous methods using over ten samples. Our source code is available
+                                                 at https://github.com/dailenson/One-DM.
+
+                                                 Keywords: Handwritten Text Generation · One-Shot Generation
+
+
+                                         1     Introduction
+
+                                         In the digital age, handwriting text generation blends the personalization of
+                                         traditional handwriting with the efficiency of automated processes, offering a
+                                         digital format to preserve the authenticity of individual handwriting. This task
+                                         aims to automatically generate the desired handwritten text images that not only
+                                         correspond to specific text content, but also emulate the calligraphic style of a
+                                         given exemplar writer (e.g., character slant, cursive join, stroke thickness, and
+                                         ⋆
+                                             Authors contributed equally; † Corresponding author
+2       G. Dai et al.
+
+                 Require fifteen                                    Require one
+                 style references                                   style reference
+
+     Writing    ✘ Inefficient                       Writing        ✔ Efficient
+                ✘ Inconvenient           User                                              User
+     Robot                                          Robot          ✔ Convenient
+                ✘ Time-consuming                                   ✔ Time-saving
+
+                  the
+                  with
+                  …… convey         Write by hand                    courage          Write by hand
+                  which process
+
+           （a）Few-shot generation                             （b）One-shot generation
+
+Fig. 1: User experience comparisons between one-shot and few-shot handwritten text
+generation methods. It reveals that one-shot setting leads to a better user experience.
+
+ink color). This provides great convenience for people with hand impairments
+and also contributes to accelerating the process of handwritten font design.
+    Previous works [5, 9, 13–15, 27, 46] introduce generative adversarial networks
+(GANs) [6,16,38] for handwritten text generation. For instance, ScrabbleGAN [13]
+leverages random noises as style inputs and conditions content inputs on character-
+level labels, enabling the synthesis of handwritten words with randomly sampled
+styles. In a recent study [11], diffusion models [37, 50, 66] such as denoising dif-
+fusion probabilistic models (DDPM) [20] have demonstrated even higher quality
+of image generation compared to GANs. This motivates several attempts, such
+as WordStylist [44], GC-DDPM [12], and CTIG-DM [70], to condition the de-
+noising process on the fixed writer ID to generate handwritten text images with
+controllable styles. However, the major limitation of these methods [12,13,44,70]
+is that they are unable to mimic the unseen writers’ handwriting styles.
+    To imitate any given handwriting style, some previous methods [5, 27, 46],
+known as few-shot generation, require users to provide a few samples (typically
+15) as style references. They employ a style encoder to extract writing styles from
+the given samples, thus offering flexible control over the style of the generated
+samples. However, the traditional few-shot generation pipeline is inconvenient,
+inefficient, and time-consuming, as shown in Figure 1. Users prefer methods that
+only require a single sample as a style reference, known as one-shot generation
+methods, because they are more convenient, efficient, and easy-to-use. Our goal
+is to investigate the more challenging one-shot generation task that holds sig-
+nificant practical value, striving to achieve high-quality handwritten text image
+generation with desired styles and contents.
+    The primary challenge of one-shot generation task lies in accurately extract-
+ing a user’s handwriting style from just one style reference image. As illustrated
+in Figure 2, characters, being abstract symbols, typically occupy only a mi-
+nor portion of the reference image. Besides, the reference image is often clut-
+tered with noisy background information, which poses a significant obstacle in
+extracting the individual handwriting style. Previous one-shot generation meth-
+ods [9,14,15] simply follow the architectural design of few-shot approaches, using
+a vanilla CNN encoder to directly extract the handwriting style from a single
+sample. The extracted style is then combined with text contents and input into
+a CNN decoder to generate the desired handwritten images. These methods ex-
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation           3
+
+
+             Handwriting
+
+            High-frequency
+
+
+             Handwriting
+
+            High-frequency
+
+
+Fig. 2: Handwritten text samples and corresponding high-frequency components. We
+find that high-frequency components have more pronounced character contours, clearly
+showcasing the style patterns, such as character slant and cursive connections.
+
+hibit a limited performance in emulating handwriting styles, due to their poor
+ability of style extraction.
+    To address the above challenges, our key idea revolves around utilizing the
+high-frequency information of the sample to enhance the extraction of the hand-
+writing style. As depicted in Figure 2, the high-frequency information encom-
+passes the overall contours of the handwritten text, allowing for a clear obser-
+vation of key style patterns such as the text slant, letter spacing, and cursive
+connections. Hence, the incorporation of high-frequency information facilitates
+a more effective handwriting style extraction.
+    In light of the above insight, we propose a One-shot Diffusion Mimicker (One-
+DM) for handwritten text generation, which is simultaneously guided by desired
+style and arbitrary content. More specifically, we first develop a style-enhanced
+module to process both a style reference image and its high-frequency com-
+ponents in parallel. Considering that the reference image often contains back-
+ground noise, we design a gate mechanism to suppress the inflow of background
+noise. Regarding the high-frequency components, such as character slant and
+ligature that show clearer style patterns, we employ a contrastive learning frame-
+work [28, 36, 67, 68] to further obtain discriminative style features, guiding the
+handwritten text synthesis with both realistic and diverse styles. Subsequently,
+the style features extracted from both branches are adaptively fused with the
+specific content prototype in a style-content fusion module. Finally, the seam-
+lessly integrated style and content features act as conditional inputs, guiding the
+denoising process for the progressive synthesis of stylized handwritten text im-
+ages. It is worth noting that our One-DM effectively mimics a user’s writing style
+with only one reference sample through our style-enhanced module, surpassing
+few-shot methods in producing higher-quality stylized handwritings.
+    To sum up, our contributions are as follows:
+
+ – We propose a novel diffusion model for stylized handwritten text generation,
+   which only requires a single reference sample as style input, and imitates its
+   writing style to generate handwritten text with arbitrary content.
+ – We introduce the high-frequency components of the reference sample to
+   enhance the extraction of handwriting style. The proposed style-enhanced
+4         G. Dai et al.
+
+      module can effectively capture the writing style patterns and suppress the
+      interference of background noise.
+    – Extensive experiments on handwriting datasets in English, Chinese, and
+      Japanese demonstrate that our approach with a single style reference even
+      outperforms previous methods with 15x-more references.
+
+
+2      Related Work
+
+Handwriting generation. Handwritten text is typically stored in two for-
+mats: online trajectory form or offline image form. Online handwriting gen-
+eration methods [2, 8, 31, 55, 57, 69] often employ Recurrent Neural Networks
+(RNNs) [2, 7, 31, 55–57, 69], transformer decoders [8], or diffusion models [40, 48]
+to progressively generate writing trajectories. Unlike online methods, offline gen-
+eration methods have the advantage of not requiring additional trajectory su-
+pervision information and can generate realistic handwritten text with stroke
+width and ink color, which online methods cannot produce.
+    Previous offline handwriting generation methods [3, 5, 9, 13, 22, 27, 41, 46] in
+deep learning predominantly rely on Generative Adversarial Networks (GANs).
+Early works [3,13] condition the generative process on the word embeddings [3] or
+concatenated letter-tokens [13] to synthesize handwritten word images. However,
+these methods struggle to flexibly control the writing style. Thus, few-shot ap-
+proaches [5,27,46] which rely on 15 style references are introduced. For instance,
+GANwriting [27] utilizes a CNN encoder [18,62,63] to extract a user’s handwrit-
+ing style from a few samples, which are then combined with specific text content
+to generate handwritings in the desired style. In its follow-up work [26], the syn-
+thesized samples are demonstrated to assist in training more robust handwritten
+text recognizers. Further, HWT [5] employs a transformer encoder [32,58] to ex-
+tract rich style patterns from reference samples, enhancing the performance in
+style mimicry. Recently, VATr [46] uses images of symbols as content represen-
+tations, enabling the generation of out-of-charset characters.
+    Concurrently, one-shot generation methods [9, 14, 15] are proposed. Despite
+their ability to mimic handwriting styles with only a single sample, these tech-
+niques still lag behind few-shot methods in terms of stylized generation results.
+Additionally, previous handwriting generation methods [3, 5, 9, 13–15, 27] often
+rely on complex content representations, such as recurrent embeddings [3] and
+letter-level tokens [5, 9, 13–15, 27]. SLOGAN [41] extracts textual contents from
+easily obtainable printed images. However, it faces challenges in generalizing
+to unseen writing styles due to its fixed writer ID. Similarly, some diffusion-
+based [12, 44, 70] methods condition the denoising process on fixed style ID and
+are unable to mimic styles that they have not previously encountered. In con-
+trast, our One-DM effectively obtains style information from one style sample
+and thus can generate handwritings with arbitrary styles. Due to space con-
+straints, we discuss more related works in Appendix A, including diffusion meth-
+ods for general image generation, contrastive-based method [59], and frequency-
+based methods [35, 45].
+      One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation                                                                                               5
+
+       Textual Content               E         Style-content
+                                              Fusion Module         guidance 𝑔𝑔                   Diffusion Generation Process
+                         Content
+                         Encoder
+
+           must
+                                                                                     𝑝𝑝𝜃𝜃(𝑥𝑥𝑇𝑇−1|𝑥𝑥𝑇𝑇, 𝑔𝑔)                𝑝𝑝𝜃𝜃(𝑥𝑥𝑡𝑡−1|𝑥𝑥𝑡𝑡, 𝑔𝑔)   ……
+
+
+                                     Ffre                           noise 𝑥𝑥𝑇𝑇                                   𝑥𝑥𝑇𝑇-1                                      𝑥𝑥0
+                                                       𝐹𝐹� 𝑠𝑠𝑠𝑠𝑠𝑠
+                         High-freq
+                           Style
+                         Encoder
+                                                                           E
+                                                                                                     Style-content Fusion Module
+         High-pass
+           Filter                                                                                                                                                  𝑔𝑔
+                                     Fs𝑝𝑝𝑝𝑝                                                                  Q
+                         Spatial                                        𝐹𝐹� 𝑠𝑠𝑠𝑠𝑠𝑠         K,V
+                                                  Gate                                                Cross-Attention                       Self-Attention
+                          Style                   Layer
+                         Encoder                                        Ffre
+       Style Reference
+
+
+
+Fig. 3: Overview of the proposed method. The style reference initially passes through
+a high-pass filter to extract its high-frequency components. Subsequently, the spatial
+and the high-frequency style encoders independently extract style features Fspa and
+Ff re from the style reference and its high-frequency information, respectively. Fspa ,
+after being filtered through a gate mechanism, is fused with Ff re and content features
+E in the fusion module. The merged feature then serves as a condition input to guide
+the diffusion generation process.
+
+3     Method
+
+Problem statement. We aim to synthesize handwritten text images that are
+controlled by both textual content and handwriting style. Given any word string
+A and a single style sample Is from a writer ws , the generated handwritten word
+image Xs should replicate the unique handwriting style of ws while maintaining
+the content of A, where the textual content A={ai }L   i=1 spans a length L and ai
+is from a character set without any restrictions.
+    To address this task, we incorporate high-frequency information to enhance
+the extraction of writing styles. Existing methods [5, 9, 14, 15, 27, 46] typically
+use a vanilla CNN or transformer encoder to directly process style images, often
+resulting in undesired style extraction. In contrast, we introduce a novel One-shot
+diffusion mimicker (One-DM) by innovating Laplacian high-frequency extraction
+and a gating mechanism. Our One-DM can effectively capture style features from
+a single reference while suppressing background noise.
+
+
+3.1    Overall Scheme
+
+Our high-level idea focuses on incorporating high-frequency information from
+style reference images to enhance the extraction of style patterns. A straight-
+forward implementation involves using a vanilla transformer encoder to extract
+style features from both the style image and its corresponding high-frequency
+image. This naive solution encounters two main issues: (1) the lack of efficient
+supervision objective still makes it challenging to accurately learn the writer’s
+style patterns from the high-frequency image, and (2) the style features cap-
+tured from the original image still retain undesirable noise backgrounds, which
+can adversely affect subsequent image generation performance.
+6      G. Dai et al.
+
+    To address the above-mentioned issues, we develop a more effective method,
+shown Figure 3. Our method consists of a style-enhanced module, a content
+encoder, a style-content fusion module, and a conditional diffusion module. Ini-
+tially, we utilize the Laplacian kernel as a high-frequency filter to extract the
+high-frequency components from the style reference. Then, two parallel style en-
+coders are employed to simultaneously extract the corresponding style features
+from both style reference and its high-frequency information. Since undesirable
+background noise is often present in style references, we design a gate mechanism
+to facilitate the transmission of informative style information while mitigating
+noise transmission. The style patterns in the high-frequency components are
+comparatively cleaner and more distinct, facilitating the observation of individ-
+ual styles, such as character slant. For the observation, we propose a contrastive
+learning objective, termed LaplacianNCE LlapN CE , to enforce the more discrim-
+inative style learning from high-frequency components.
+    Regarding content guidance, we render the given string A into a unifont
+image, as done in VATr [46]. Briefly, Unifont’s key advantage is that it covers
+all Unicode characters, allowing our method to transform any user inputs into
+corresponding images. We further feed render results into a content encoder
+that combines a ResNet18 [18] with a Transformer encoder. This process first
+involves using a ResNet18 to handle each character image in parallel, followed
+by concatenating them to form word sequence features. The Transformer en-
+coder then processes these features to extract an informative content feature
+E ={ei }Li=1 ∈ R
+                  L×c
+                      with a global context, where c is the channel dimension.
+After obtaining style features and content guidance, we seamlessly fusion them
+using a style-content fusion module. The fused results then guide the denoising
+process of the conditional diffusion model to synthesize the desired handwritten
+text images. The denoising process is supervised by the reconstruction loss Lrec .
+    To summarize, the overall training objective of our method combines all two
+loss functions:
+                               L = LlapN CE + Lrec .
+
+3.2   Style-enhanced Module
+We propose the style-enhanced module to enhance style extraction by incorpo-
+rating high-frequency components Hs ∈ Rh×w×c from a reference image Is ∈
+Rh×w×c since clearer style patterns are presented in high-frequency components
+like character slanting and shape connections (cf. Figure 2). As shown in Fig-
+ure 3, we use a Laplacian kernel as a high-frequency filter to extract Hs from
+Is . The Laplacian kernel excels in extracting high-frequency information without
+the need for Fast Fourier Transform (FFT) and parametric separation in the fre-
+quency domain. Then, two style encoders, Espa and Ef re , each a combination of
+CNN and transformer, process the Is and Hs , respectively. This independent pro-
+cessing leads to the extraction of distinct style features:Fspa ={fspa
+                                                                    i
+                                                                       }di=1 ∈ Rd×c
+from Espa and Ff re ={ff re }i=1 ∈ R
+                         i   d       d×c
+                                         from Ef re , where d = h × w. While struc-
+turally identical, Espa and Ef re do not share weights with each other. Then, the
+proposed LlapN CE forces Ef re to focus on extracting discriminative style features
+      One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation                                                                                                                                                                                                                                                       7
+
+from Hs . A gate mechanism is designed to selectively filter out background noise
+from the reference style features, allowing only meaningful style patterns to pass.
+    Laplacian Contrastive Learning. The goal of the proposed LlapN CE is to
+guide the high-frequency style encoder Ef re in learning more discriminative style
+features from the high-frequency information. Thus, we propose to bring closer
+extracted style features Ff re belonging to the same writer, while distancing those
+from different writers. We formulate our LlapN CE as follows:
+
+             \label {WriterNCE} \mathcal {L}_{lapNCE}\text {\small {=}\small {-}}\frac {1}{N}\sum _{i \in M}\frac {1}{ \left |P\left (i\right )\right |}\sum _{p \in P\left (i\right )}\log \frac {\exp {\left ({z_i\cdot z_p}/\tau \right )}}{\sum _{a \in A\left (i\right )}\exp {\left ({z_i \cdot z_a}/\tau \right )}}.    (1)
+
+In detail, i ∈ M ={1...N } is the index of any element in the mini-batch with size
+N and A (i) =M \{i} is other indices distinct from i. zi is an anchor sample be-
+longing to writer wi and P (i)={p ∈ A (i) : wp =wi } is its in-batch positive sample
+set and the other A (i) \P (i) is its negative set. Here, z =P roj(Ff re ), where P roj
+is a learnable multi-layer perceptron (MLP), τ is a scalar temperature parameter
+and the · symbol denotes the inner product.
+    Gate mechanism. As illustrated in Figure 2, the stroke areas of characters
+in reference images are typically sparse, with background noise interfering with
+the extraction of character style features. To address this challenge, we propose
+a gate mechanism to selectively filter the information of the sample Is , as shown
+in Figure 3. Specifically, the extracted sample style features Fspa are fed into
+a gate layer, consisting of a learnable fully connected layer and followed by a
+sigmoid activation, to obtain the corresponding gate units W ={wi }di=1 ∈ Rd .
+                                                                     i
+Each unit wi determines the pass rate for the corresponding fspa         , allowing for
+a higher pass rate where wi is larger. This design effectively enables informa-
+tive style features F̂spa ={fˆspa
+                              i
+                                  }di=1 to be extracted while suppressing extraneous
+background noise, where fˆspa i        i
+                                  = fspa   · wi .
+
+
+3.3    Style-content Fusion Module
+
+Upon acquiring textual content feature E and two style features F̂spa and Ff re ,
+we integrate all features within two multi-head attention mechanisms to guide
+the denoising generation process of the diffusion model, as shown in Figure 3.
+Specifically, the first cross-attention module uses the textual content E as queries
+to identify the most relevant style information in the style reference, thereby in-
+ferring the style attributes corresponding to each character. For instance, if the
+textual content is ‘a’, it prioritizes searching for style features of characters like
+‘a’, ‘b’, ‘d’, ‘g’ in the style reference, due to these characters appearing simi-
+lar looped structures, implying more comparable style attributes. This process
+(cross-attention in Figure 3) is represented as:
+
+                                             O=Atten_{1}(Q_1=E, K_1=V_1=\hat {F}_{spa}+F_{fre}).                                                                                                                                                                                                                               (2)
+
+Subsequently, we obtain the initial fusion embedding between content and style
+guidance by simply summing O and E. The merged intermediate vector is then
+8       G. Dai et al.
+
+employed as the query, key, and value in the self-attention mechanism to facili-
+tate comprehensive interaction of information. Finally, the blended embedding g
+serves as the condition of the diffusion process. The second multi-head attention
+(self-attention in Figure 3) is defined as:
+
+                               g=Atten_{2}(Q_2=K_2=V_2=O+E).                                                                                           (3)
+
+3.4   Conditional Diffusion Model
+The goal of the conditional diffusion model pθ is to generate realistic images of
+handwritten text, guided by acquired conditions g. Specifically, as shown in Fig-
+ure 3, under the guidance of g, pθ executes a denoising generative process with
+T steps, starting from a sampled Gaussian noise xT and progressively denoises
+to obtain the desired handwritten text x0 :
+
+                                            p_{\theta }(x_0|g)\text {\small {=}}\int p_{\theta }(x_{0:T}|g)d_{x_{1:T}},                                (4)
+
+
+
+                                 p_{\theta }(x_{0:T}|g)\text {\small {=}}p(x_T)\prod \limits _{t=1}^Tp_{\theta }(x_{t-1}|x_t, g),                      (5)
+
+
+                  p_{\theta }(x_{t-1}|x_t,g)\text {\small {=}}\mathcal N(x_{t-1};\mu _{\theta }(x_t,g,t),\Sigma _{\theta }(x_t,g, t)).                 (6)
+   The denoising process aims to learn how to reverse a predefined forward
+process, as described in DDPM [20]. The forward process is modeled as a fixed
+Markov chain, where noise conforming to a normal distribution is incrementally
+added to xt−1 to derive xt . This can be mathematically expressed as:
+
+                              q(x_{t}|x_{t-1}) = \mathcal {N}(x_{t}; \sqrt {1-\beta _t}x_{t-1}, \beta _t\mathbf {I}),                                  (7)
+
+where the noise is characterized by a variance schedule βt . During training, a
+variational bound on the maximum likelihood objective is applied to guide the
+generation process to recover x0 from the standard Gaussian noise xT condi-
+tioned on g. We give the training objective as follows:
+
+                               \mathcal {L}_{rec}\text {\small {=}}\mathbb {E}_{t,q} \left \| \mu _t(x_t,x_0)-\mu _{\theta }(x_t,g,t)\right \|_2^2,    (8)
+
+where µt (xt , x0 ) is the mean of the forward process posterior q(xt |xt−1 ), which
+has a closed-form solution [20]. We put more details in Appendix B.
+
+
+4     Experiments
+4.1   Experimental Settings
+Dataset. To evaluate our One-DM in handwritten text generation, we use the
+widely-used handwriting dataset IAM [42] and CVL [30]. IAM consists of 62,857
+English word images from 500 unique writers. Following [5, 27, 46], we use words
+      One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation       9
+
+from 339 writers for training and the remaining 161 writers for testing. CVL
+includes texts by 310 writers in English and German. We use the English portion,
+totaling 84,514 words, and follow CVL’s standard split, with 283 writers for
+training and 27 for testing. Throughout all experiments, we resize images to 64
+pixels in height, preserving their aspect ratio.
+    Evaluation metrics. We use the Fréchet Inception Distance (FID) [19] and
+Geometry Score (GS) [29] to assess the generation quality, following the settings
+of [5, 27, 46]. We also conduct user studies to quantify the subjective quality of
+the generated handwritten text images in Appendix E.
+    Implementation details. In our all experiments, we only use single style
+reference sample. We first train our model for 700 epochs (batch size of 384) with
+classifier-free guidance strategy [21] under the guidance scale of 0.25, and then
+fine-tune the model for 4500 iterations (batch size of 128) using a text recog-
+nizer [49] with a CTC loss [17, 23, 71], on four RTX3090 GPUs. The fine-tuning
+process forces our One-DM to generate readable text with accurate content. The
+optimizer is AdamW [39], with a learning rate of 10−4 . During inference, each
+style sample is randomly sampled from the target-writer. To speed up the sam-
+pling, we use the denoising diffusion implicit model (DDIM) [54] with 50 steps.
+More details are provided in Appendix C.1.
+    Compared methods. We compare our One-DM with state-of-the-art hand-
+written text generation methods, including GAN-based methods (i.e., GANwrit-
+ing [27], HWT [5], VATr [46], TS-GAN [9], HiGAN+ [15]), and diffusion-based
+methods (i.e. GC-DDPM [12] and WordStylist [44]). For a fair comparison, we
+configure all methods to generate images with a height of 64 pixels, as detailed
+in Appendix C.2. Additionally, in Appendix D, we compare a variant of One-DM
+that generates 32-pixel high images with official VATr [46] and HWT [5].
+
+4.2    Main Results
+Styled Handwritten Text Generation. Initially, we assess our One-DM for
+producing styled handwritten text images, aiming to replicate both the style
+and content in the generated images. Following [5, 27, 46], we first calculate FID
+between generated and real samples for each writer separately and finally average
+them. In line with the previous works [5, 27, 46], our experiments on the IAM
+dataset are divided into four distinct scenarios: IV-S, IV-U, OOV-S, OOV-U.
+Among these four scenarios, OOV-U represents the most challenging case where
+both the target style and the words are entirely unseen during training. For the
+CVL dataset, we directly report the results of all methods on the test set.
+    We first report the quantitative results on the IAM dataset in Table 1. We
+can observe that our One-DM outperforms all the competitors in all settings.
+Notably, it significantly exceeds one-shot methods in all scenarios. Impressively,
+our One-DM also holds a substantial advantage over few-shot methods (GAN-
+writing [27], HWT [5], VATr [46]), which use 15-x more reference samples for
+style guidance, in IV-S and OOV-S settings. Even in the most challenging OOV-
+U scenario, our One-DM leads the second-best, VATr, by a large margin (102.75
+vs. 108.76), demonstrating the superior performance of our One-DM in stylized
+10     G. Dai et al.
+
+Table 1: Comparisions with state-of-the-art methods on styled and style-agnostic
+handwritten text generation in the IAM dataset. Note that, all methods are trained
+on the same training set used in GANwriting [27], HWT [5], and VATr [46].
+
+                                      Styled Evaluation        Style-agnostic
+            Method          Shot
+                                   IV-S IV-U OOV-S OOV-U       FID↓     GS↓
+            TS-GAN [9]       One 118.56 128.75 127.11 136.67   20.65 4.88×10−2
+            GANwriting [27] Few 120.07 124.30 125.87 130.68    28.37 5.67×10−2
+            HiGAN+ [15]      One 117.33 116.95 121.55 121.48   22.95 2.06×10−2
+            GC-DDPM [12] One 99.86 105.73 112.52 118.39        19.05 1.31×10−2
+            WordStylist [44] One 98.10 104.27 109.45 115.52    18.58 2.85 ×10−2
+            HWT [5]          Few 109.25 106.90 116.55 113.52   18.99 4.41×10−3
+            VATr [46]        Few 103.75 101.73 111.64 108.76   16.03 1.74×10−2
+            Ours (One-DM) One 89.47 98.36 93.30 102.75         15.73 1.98×10−3
+
+
+
+handwritten text generation. Similarly, our method outperforms HWT and VATr
+on the CVL dataset, achieving the lowest FID score, as shown in Table 4.
+    We provide qualitative results to intuitively explain the benefit of our One-
+DM, in Figure 4. GANwriting struggles to capture the style patterns of reference
+samples, such as character slant and occasionally produces unclear character
+shapes. HiGAN+ more consistently generates characters with correct content,
+but the character spacing within the generated words lacks realism. WordStylist
+typically produces images with noticeable background noise. HWT and VATr
+can produce satisfactory handwritten words in terms of content accuracy and
+style mimicry; however, their downside is the tendency to create smoother char-
+acter appearances. Compared to HWT and VATr, our synthesized samples excel
+in more authentic character ink color and stroke thickness. However, some gen-
+erated samples by our One-DM are visibly different in ink color. We provide
+comprehensive explanations in Appendix J. We further display more qualitative
+comparisons between our method and few-shot methods in Figure 5.
+    Style-agnostic Handwritten Text Generation. We further evaluate our
+One-DM to generate realistic handwritten text images, irrespective of style imi-
+tation. For this purpose, we compute the FID and GS on the IAM test set, under
+the same conditions as applied to ScrabbleGAN [13] (FID: 20.72, GS:2.56×10−2 ),
+capable of generating handwritten texts with randomly sampled styles. Specifi-
+cally, each method generates 25k random samples to calculate FID against 25k
+samples from the test set, and 5k random samples for GS calculation in compar-
+ison with 5k test set samples. As presented in Table 1, our One-DM achieves the
+best results in both FID and GS metrics, further demonstrating its capability
+to generate higher-quality handwritten text images.
+
+4.3   Analysis
+In this section, we conduct ablation studies to analyze our One-DM. More analy-
+ses are provided in suplementary, including generalization evaluation on different
+style backgrounds, generation quality assessment through OCR performance,
+failure case analysis, and the effects of different designs (e.g., high-frequency
+filter, style-content fusion mechanism, and style input sample length).
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation                      11
+
+                Style
+              examples
+
+
+              GANw.
+
+
+           HiGAN+
+
+
+
+
+               WordS.
+
+
+
+
+               HWT
+
+
+               VATr
+
+
+                Ours
+
+
+
+
+Fig. 4: Qualitative comparisons between our method with state-of-the-art methods on
+handwritten text generation with both specific textual content and desired handwriting
+style in the IAM dataset. We utilize the identical guiding text, ‘The greatest test of
+courage on earth is to bear defeat without losing heart,’ across all handwriting generation
+methods, directing them to produce text in varied styles. Better zoom in 200%. ∗
+denotes one-shot methods, while others are few-shot methods.
+
+     Target                                       Text Style A    interpolation    Style B
+                                                 plants
+                                                 cloud
+   Generated                                     stick
+   Samples                                       photo
+                                                 vapor
+                                                 lists
+
+Fig. 5: Each row shows results from our        Fig. 6: We provide style interpolation re-
+One-DM and few-shot methods on IAM             sults generated by our One-DM. Differ-
+dataset; readers are invited to identify our   ent individual writing styles are extracted
+method. The answer is at the paper’s end.      from the IAM test dataset.
+
+    Quantitative evaluation of Laplacian branch and gate mechanism.
+We conduct various ablation experiments on the IAM dataset to evaluate the
+effect of distinct components within our approach. We provide the quantitative
+result in Table 2. We find that: (1) The inclusion of both Laplacian branch and
+gate mechanism enhances the quality of the generated handwritten text images,
+improving FID by 3.92 and 2.71, respectively. (2) Integrating the Laplacian
+branch with the gate mechanism further boosts the generative performance.
+    Qualitative evaluation of Laplacian branch and gate mechanism.
+To further analyze each module in our One-DM, we conduct visual ablation
+experiments. As shown in Table 2. we can observe that firstly, after adding a
+gate mechanism, background noise can be somewhat suppressed, resulting in
+characters with relatively clean backgrounds. Then, the independent addition
+of the Laplacian branch helps the model learn cursive connections and other
+12         G. Dai et al.
+
+Table 2: Ablation study. Effect of the           Table 3: Effect of each part of
+Laplacian branch and gate mechanism on           our Laplacian branch on IAM
+the IAM dataset under the OOV-U setting,         dataset under OOV-U setting.
+as done in [5].In the middle, we showcase the
+                                                        Hs LlapN CE FID ↓
+generated samples of each component.
+                                                                    108.44
+                                                         ✓          106.16
+                        Style samples                           ✓   107.58
+      Base Ef re Gate                   FID ↓            ✓      ✓   104.52
+
+                                                 Table 4: Comparisons with
+       ✓                                108.44   competitors on the CVL dataset.
+       ✓         ✓                      105.73         Method        FID ↓
+
+       ✓    ✓                           104.52         HWT [5]       58.22
+                                                       VATr [46]     54.44
+       ✓    ✓    ✓                      102.75         Ours (One-DM) 51.78
+
+
+
+style patterns. Finally, our method integrated the Laplacian branch and gate
+mechanism, which can generate the highest quality handwritten text images.
+    Discussions of the Laplacian branch. Our Laplacican branch consists
+of two key components: utilizing high-frequency images Hs and the Laplacian
+contrastive learning loss LlapN CE . In the previous ablation study, they are al-
+ways combined. We further conduct exploration experiments to explain why they
+cannot be separated. As reported in Table 3, combining Hs and LlapN CE maxi-
+mizes effectiveness; separating them significantly reduces performance. Without
+the guidance of LlapN CE , extracting discriminative features from Hs is challeng-
+ing. Likewise, directly applying LlapN CE on original images leads to an undesired
+style feature extraction, as original images have less clear style patterns than Hs .
+    Discussions about learning style from a single reference. We are quite
+surprised that One-DM, with just a single reference sample, even exceeds the
+generative performance of few-shot methods. We provide the potential reason
+analysis below. Firstly, One-DM learns a meaningful style latent space, wherein
+new styles can be generated based on seen styles (cf. Figure 6). Then, through
+our style-enhanced module, One-DM effectively extracts the style feature from
+a single example and maps it to a position close to the exemplary writer in the
+feature space, thereby producing high-quality styled handwritten text images.
+
+4.4     Comparisons with SOTA Industrial Methods
+To highlight the superiority of our method, we compare One-DM with lead-
+ing industrial image generation methods that are trained on tremendously large
+datasets (including numerous text-centric images), including two prominent text-
+to-image methods, DALL-E3 [4] and Stable Diffusion [50] (SD), and two pop-
+ular style transfer methods, Artbreeder1 and IP-Adapter2 (IP-A.), on the IAM
+dataset. Further experiment details are in Appendix C.3.
+1
+     https://www.artbreeder.com/
+2
+     https://github.com/tencent-ailab/IP-Adapter
+      One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation                                                     13
+
+     Style
+    sample
+             Textual
+             content
+                       Ours     DALL-E3   SD   Artbreeder   IP-A.   Content     绘喉得 吵各炊 让惭缚
+              fall                                                  Fzshouji
+
+
+             never                                                   Ours
+
+
+             asking                                                  Target
+
+
+        (a) Comparisons on handwritten text generation                (b) Comparisons on Chinese handwriting generation
+
+Fig. 7: (a) Qualitative comparisons between our method with SOTA industrial image
+generation methods, including DALL-E3 [4], Stable Diffusion [50], Artbreeder1 and IP-
+Adapter2 on handwritten text generation with both controllable styles and contents.
+(b) Qualitative comparisons with Fzshouji3 on ICDAR- 2013 competition database [64].
+Table 5: Quantitative comparisons                                    Table 6: Qualitative comparisons with
+with competitors on styled handwritten                               VATr [46] on Chinese dataset.
+character generation in terms of FID.
+                                                                                                   Diffusion Step
+                                                                               GT   VATr
+      Method                  Chinese Japanese                                             0   1   2     3    10    30   50
+
+      GANwriting [27] 116.49              111.86
+      HWT [5]          165.74             148.66
+      VATr [46]        139.91             124.98
+      WordStylist [44] 34.61              101.93
+      Ours (One-DM) 27.24                  95.43
+
+
+    As shown in Figure 7(a), our method excels industrial methods in style
+mimicry and content preservation. The performance of IP-A. is the poorest, of-
+ten producing distorted images. Artbreeder can replicate the color of the strokes
+from style samples, but fails in content preservation. DALL-E3 and SD gen-
+erate characters with accurate content, but often mismatch style details with
+references, such as character spacing and stroke width, with SD often generat-
+ing extra backgrounds. Besides, we compare Fzshouji3 , an advanced industrial
+method designed for Chinese handwriting generation. As shown in Figure 7(b),
+our method outperforms Fzshouji in replicating character details and ink color.
+
+
+4.5      Applications to Other Languages
+
+In this section, we evaluate whether One-DM can be used to generate languages
+other than English. We further conduct experiments in the Chinese (i.e. ICDAR-
+2013 competition database [64]) and Japanese(i.e. UP_Kuchibue database [24])
+datasets. We use FID to assess generated samples of each writer, then average
+them. More experiment details can be seen in Appendix C.4.
+    For the Chinese handwritten character generation task, as shown in Table 5,
+we find that our One-DM outperforms the second-best method by a large margin,
+achieving a 7.37 lower FID. From Figure 8 (a), we can observe that our One-DM
+generates characters that closely match the target images in geometric shape
+and character slant. In contrast, handwritings from HWT and VATr exhibit
+noticeable artifacts like blurring and collapsed structures. GANwriting tends to
+3
+    https://www.fzshouji.com/make
+14        G. Dai et al.
+
+
+            Source
+
+            GANw.
+
+            HWT
+
+            VATr
+
+            WordS.
+
+             Ours
+
+            Target
+                          (a) Chinese Script          (b) Japanese Script
+Fig. 8: Comparisons with GANwriting [27], HWT [5], VATr [46], and WordStylist [44]
+for styled handwritten character generation on Chinese and Japanese scripts. The red
+boxes highlight failures of structure preservation, while blue boxes highlight compar-
+isons between the style patterns of targets and generated characters.
+miss strokes in its handwritings. WordStylist sometimes struggles to accurately
+mimic style patterns and tends to generate characters with incorrect radicals.
+Table 5 and Figure 8 (b) further verify the effectiveness of One-DM for Japanese
+handwriting generation. We also achieve the lowest FID score, and our generated
+Japanese samples excel in both content preservation and style imitation.
+    We further investigate why diffusion-based methods (Our One-DM and Word-
+Stylist) that require only one single sample outperform few-shot GAN-based
+methods (i.e., GANwriting, HWT, and VATr) so significantly in generating Chi-
+nese and Japanese characters. The lower performance of GAN-based methods on
+Chinese and Japanese characters may stem from their vanilla convolutional ar-
+chitectures struggling with Chinese and Japanese characters’ complex geometry,
+as noted in [60]. In contrast, our One-DM breaks down the generation of Chi-
+nese and Japanese characters into simpler steps. For instance, as demonstrated
+in Table 6, during the early stages of the diffusion generation process, the model
+first attempts to generate a rough Chinese handwritten character. It then con-
+tinues to refine the writing style (e.g., character shape and stroke color) under
+the condition guidance, until it synthesizes handwritings that are satisfactory.
+
+
+5      Conclusion
+In this paper, we introduce a novel One-DM for handwritten text generation,
+requiring only one style reference to produce realistic handwritten text images4 .
+We enhance style extraction by incorporating high-frequency components from
+the style reference. For high-frequency components with distinct style patterns,
+we employ laplacian contrastive learning to capture more discriminative style
+features. Moreover, a gate mechanism improves the transfer of informative fea-
+tures from the reference, reducing background noise. Our One-DM outperforms
+few-shot methods in multiple language scripts. In the future, we aim to explore
+the potential of One-DM in font generation and vector font creation tasks.
+4
+     In Figure 5, the second from bottom row belongs to our method.
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation              15
+
+Acknowledgments The research is partially supported by National Key Re-
+search and Development Program of China (2023YFC3502900), National Natu-
+ral Science Foundation of China (No.62176093, 61673182), Key Realm Research
+and Development Program of Guangzhou (No.202206030001), Guangdong-Hong
+Kong-Macao Joint Innovation Project (No.2023A0505030016).
+
+
+References
+
+ 1. Achiam, J., Adler, S., Agarwal, S., Ahmad, L., Akkaya, I., Aleman, F.L., Almeida,
+    D., Altenschmidt, J., Altman, S., Anadkat, S., et al.: Gpt-4 technical report. In:
+    arXiv (2023)
+ 2. Aksan, E., Pece, F., Hilliges, O.: Deepwriting: Making digital ink editable via deep
+    generative modeling. In: ACM Conf. Human Factors Comput. Sys. pp. 1–14 (2018)
+ 3. Alonso, E., Moysset, B., Messina, R.: Adversarial generation of handwritten text
+    images conditioned on sequences. In: ICDAR. pp. 481–486 (2019)
+ 4. Betker, J., Goh, G., Jing, L., Brooks, T., Wang, J., Li, L., Ouyang, L., Zhuang, J.,
+    Lee, J., Guo, Y., et al.: Improving image generation with better captions. Computer
+    Science. 2(3), 8 (2023)
+ 5. Bhunia, A.K., Khan, S., Cholakkal, H., Anwer, R.M., Khan, F.S., Shah, M.: Hand-
+    writing transformers. In: ICCV. pp. 1086–1094 (2021)
+ 6. Cao, J., Mo, L., Zhang, Y., Jia, K., Shen, C., Tan, M.: Multi-marginal wasserstein
+    gan. In: NeurIPS. vol. 32 (2019)
+ 7. Chen, Z., Yang, D., Liang, J., Liu, X., Wang, Y., Peng, Z., Huang, S.: Complex
+    handwriting trajectory recovery: Evaluation metrics and algorithm. In: ACCV. pp.
+    1060–1076 (2022)
+ 8. Dai, G., Zhang, Y., Wang, Q., Du, Q., Yu, Z., Liu, Z., Huang, S.: Disentangling
+    writer and character styles for handwriting generation. In: CVPR. pp. 5977–5986
+    (2023)
+ 9. Davis, B.L., Morse, B.S., Price, B.L., Tensmeyer, C., Wigington, C., Jain, R.:
+    Text and style conditioned GAN for the generation of offline-handwriting lines. In:
+    BMVC (2020)
+10. Devlin, J., Chang, M.W., Lee, K., Toutanova, K.: Bert: Pre-training of deep bidi-
+    rectional transformers for language understanding. In: NAACL (2019)
+11. Dhariwal, P., Nichol, A.: Diffusion models beat gans on image synthesis. In:
+    NeurIPS. pp. 8780–8794 (2021)
+12. Ding, H., Luan, B., Gui, D., Chen, K., Huo, Q.: Improving handwritten ocr with
+    training samples generated by glyph conditional denoising diffusion probabilistic
+    model. In: ICDAR. pp. 20–37 (2023)
+13. Fogel, S., Averbuch-Elor, H., Cohen, S., Mazor, S., Litman, R.: Scrabblegan: Semi-
+    supervised varying length handwritten text generation. In: CVPR. pp. 4324–4333
+    (2020)
+14. Gan, J., Wang, W.: Higan: Handwriting imitation conditioned on arbitrary-length
+    texts and disentangled styles. In: AAAI. pp. 7484–7492 (2021)
+15. Gan, J., Wang, W., Leng, J., Gao, X.: Higan+: Handwriting imitation gan with
+    disentangled representations. ACM TOG 42(1), 1–17 (2022)
+16. Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S.,
+    Courville, A., Bengio, Y.: Generative adversarial nets. In: NeurIPS. pp. 2672–2680
+    (2014)
+16      G. Dai et al.
+
+17. Graves, A., Fernández, S., Gomez, F., Schmidhuber, J.: Connectionist temporal
+    classification: labelling unsegmented sequence data with recurrent neural networks.
+    In: ICML. pp. 369–376 (2006)
+18. He, K., Zhang, X., Ren, S., Sun, J.: Deep residual learning for image recognition.
+    In: CVPR. pp. 770–778 (2016)
+19. Heusel, M., Ramsauer, H., Unterthiner, T., Nessler, B., Hochreiter, S.: Gans trained
+    by a two time-scale update rule converge to a local nash equilibrium. In: Advances
+    in neural information processing systems (2017)
+20. Ho, J., Jain, A., Abbeel, P.: Denoising diffusion probabilistic models. In: NeurIPS.
+    vol. 33, pp. 6840–6851 (2020)
+21. Ho, J., Salimans, T.: Classifier-free diffusion guidance. In: arXiv (2022)
+22. Huang, H., Yang, D., Dai, G., Han, Z., Wang, Y., Lam, K.M., Yang, F., Huang,
+    S., Liu, Y., He, M.: Agtgan: Unpaired image translation for photographic ancient
+    character generation. In: ACM MM. pp. 5456–5467 (2022)
+23. Huang, S., Luo, Y., Zhuang, Z., Yu, J.G., He, M., Wang, Y.: Context-aware selective
+    label smoothing for calibrating sequence recognition model. In: ACM MM (2021)
+24. Jaeger, S., Nakagawa, M.: Two on-line japanese character databases in unipen
+    format. In: ICDAR. pp. 566–570 (2001)
+25. Jiang, Y., Lian, Z., Tang, Y., Xiao, J.: Scfont: Structure-guided chinese font gen-
+    eration via deep stacked networks. In: AAAI. pp. 4015–4022 (2019)
+26. Kang, L., Riba, P., Rusinol, M., Fornes, A., Villegas, M.: Content and style aware
+    generation of text-line images for handwriting recognition. IEEE TPAMI 44(12),
+    8846–8860 (2021)
+27. Kang, L., Riba, P., Wang, Y., Rusinol, M., Fornés, A., Villegas, M.: Ganwriting:
+    content-conditioned generation of styled handwritten word images. In: ECCV. pp.
+    273–289 (2020)
+28. Khosla, P., Teterwak, P., Wang, C., Sarna, A., Tian, Y., Isola, P., Maschinot, A.,
+    Liu, C., Krishnan, D.: Supervised contrastive learning. In: NeurIPS. pp. 18661–
+    18673 (2020)
+29. Khrulkov, V., Oseledets, I.: Geometry score: A method for comparing generative
+    adversarial networks. In: International conference on machine learning. pp. 2621–
+    2629. PMLR (2018)
+30. Kleber, F., Fiel, S., Diem, M., Sablatnig, R.: Cvl-database: An off-line database for
+    writer retrieval, writer identification and word spotting. In: ICDAR. pp. 560–564
+    (2013)
+31. Kotani, A., Tellex, S., Tompkin, J.: Generating handwriting via decoupled style
+    descriptors. In: ECCV. pp. 764–780 (2020)
+32. Li, D., Chen, G., Wu, X., Yu, Z., Tan, M.: Face anti-spoofing with cross-stage
+    relation enhancement and spoof material perception. Neural Networks 175, 106275
+    (2024)
+33. Liang, J., Zhong, J., Gu, H., Lu, Z., Tang, X., Dai, G., Huang, S., Fan, L., Yang, Q.:
+    Diffusion-driven data replay: A novel approach to combat forgetting in federated
+    class continual learning. arXiv preprint arXiv:2409.01128 (2024)
+34. Liao, W., Wang, J., Lin, Z., Xiong, L., Jin, L.: Pptser: A plug-and-play tag-guided
+    method for few-shot semantic entity recognition on visually-rich documents. In:
+    Findings of the Association for Computational Linguistics. pp. 10522–10539 (2024)
+35. Lin, T., Ma, Z., Li, F., He, D., Li, X., Ding, E., Wang, N., Li, J., Gao, X.: Drafting
+    and revision: Laplacian pyramid network for fast high-quality artistic style transfer.
+    In: CVPR. pp. 5141–5150 (2021)
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation               17
+
+36. Lin, Z., Li, J., Dai, G., Chen, T., Huang, S., Lin, J.: Contrastive representation
+    enhancement and learning for handwritten mathematical expression recognition.
+    Pattern Recognition Letters (2024)
+37. Liu, Z., Chen, K., Zhang, Y., Han, J., Hong, L., Xu, H., Li, Z., Yeung, D.Y., Kwok,
+    J.: Geom-erasing: Geometry-driven removal of implicit concept in diffusion models.
+    arXiv (2023)
+38. Liu, Z., Jia, W., Yang, M., Luo, P., Guo, Y., Tan, M.: Deep view synthesis via
+    self-consistent generative network. IEEE TMM 24, 451–465 (2021)
+39. Loshchilov, I., Hutter, F.: Decoupled weight decay regularization. In: arXiv (2017)
+40. Luhman, T., Luhman, E.: Diffusion models for handwriting generation. arXiv
+    (2020)
+41. Luo, C., Zhu, Y., Jin, L., Li, Z., Peng, D.: Slogan: handwriting style synthesis for
+    arbitrary-length and out-of-vocabulary text. IEEE Trans. Neural Networks Learn.
+    Syst. (2022)
+42. Marti, U.V., Bunke, H.: The iam-database: an english sentence database for of-
+    fline handwriting recognition. International Journal on Document Analysis and
+    Recognition 5, 39–46 (2002)
+43. Nichol, A., Dhariwal, P., Ramesh, A., Shyam, P., Mishkin, P., McGrew, B.,
+    Sutskever, I., Chen, M.: Glide: Towards photorealistic image generation and editing
+    with text-guided diffusion models. arXiv (2021)
+44. Nikolaidou, K., Retsinas, G., Christlein, V., Seuret, M., Sfikas, G., Smith, E.B.,
+    Mokayed, H., Liwicki, M.: Wordstylist: Styled verbatim handwritten text genera-
+    tion with latent diffusion models. In: ICDAR. pp. 384–401 (2023)
+45. Pan, Z., Ji, Z., Liu, X., Bai, J., Liu, C.L.: Visa: Visual and semantic alignment for
+    robust scene text recognition. In: ICDAR. pp. 223–242 (2023)
+46. Pippi, V., Cascianelli, S., Cucchiara, R.: Handwritten text generation from visual
+    archetypes. In: CVPR. pp. 22458–22467 (2023)
+47. Radford, A., Kim, J.W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry,
+    G., Askell, A., Mishkin, P., Clark, J., et al.: Learning transferable visual models
+    from natural language supervision. In: ICML. pp. 8748–8763 (2021)
+48. Ren, M.S., Zhang, Y.M., Wang, Q.F., Yin, F., Liu, C.L.: Diff-writer: A diffusion
+    model-based stylized online handwritten chinese character generator. In: Interna-
+    tional Conference on Neural Information Processing. pp. 86–100 (2023)
+49. Retsinas, G., Sfikas, G., Gatos, B., Nikou, C.: Best practices for a handwritten text
+    recognition system. In: International Workshop on Document Analysis Systems.
+    pp. 247–259 (2022)
+50. Rombach, R., Blattmann, A., Lorenz, D., Esser, P., Ommer, B.: High-resolution
+    image synthesis with latent diffusion models. In: CVPR. pp. 10684–10695 (2022)
+51. Ronneberger, O., Fischer, P., Brox, T.: U-net: Convolutional networks for biomed-
+    ical image segmentation. In: Medical Image Computing and Computer-Assisted
+    Intervention. pp. 234–241 (2015)
+52. Ruiz, N., Li, Y., Jampani, V., Pritch, Y., Rubinstein, M., Aberman, K.: Dream-
+    booth: Fine tuning text-to-image diffusion models for subject-driven generation.
+    In: CVPR. pp. 22500–22510 (2023)
+53. Saharia, C., Chan, W., Saxena, S., Li, L., Whang, J., Denton, E.L., Ghasemipour,
+    K., Gontijo Lopes, R., Karagol Ayan, B., Salimans, T., et al.: Photorealistic text-
+    to-image diffusion models with deep language understanding. In: NeurIPS. pp.
+    36479–36494 (2022)
+54. Song, J., Meng, C., Ermon, S.: Denoising diffusion implicit models. In: ICLR (2021)
+18      G. Dai et al.
+
+55. Tang, S., Lian, Z.: Write like you: Synthesizing your cursive online chinese hand-
+    writing via metric-based meta learning. In: Comput. Graph. Forum. pp. 141–151
+    (2021)
+56. Tang, S., Xia, Z., Lian, Z., Tang, Y., Xiao, J.: Fontrnn: Generating large-scale
+    chinese fonts via recurrent neural network. In: Comput. Graph. Forum. pp. 567–
+    577 (2019)
+57. Tolosana, R., Delgado-Santos, P., Perez-Uribe, A., Vera-Rodriguez, R., Fierrez,
+    J., Morales, A.: Deepwritesyn: On-line handwriting synthesis via deep short-term
+    representations. In: AAAI. pp. 600–608 (2021)
+58. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A.N., Kaiser,
+    Ł., Polosukhin, I.: Attention is all you need. In: NeurIPS (2017)
+59. Xie, X., Fu, L., Zhang, Z., Wang, Z., Bai, X.: Toward understanding wordart:
+    Corner-guided transformer for scene text recognition. In: ECCV. pp. 5456–5467
+    (2022)
+60. Xie, Y., Chen, X., Sun, L., Lu, Y.: Dg-font: Deformable generative networks for
+    unsupervised font generation. In: CVPR (2021)
+61. Xu, Z., Gong, S., Tang, J., Liang, L., Huang, Y., Li, H., Huang, S.: Kmtalk:
+    Speech-driven 3d facial animation with key motion embedding. arXiv preprint
+    arXiv:2409.01113 (2024)
+62. Yang, Y., Liu, D., Zhang, S., Deng, Z., Huang, Z., Tan, M.: Hilo: Detailed and
+    robust 3d clothed human reconstruction with high-and low-frequency information
+    of parametric models. In: Proceedings of the IEEE/CVF Conference on Computer
+    Vision and Pattern Recognition. pp. 10671–10681 (2024)
+63. Yang, Y., Zhang, S., Huang, Z., Zhang, Y., Tan, M.: Cross-ray neural radiance fields
+    for novel-view synthesis from unconstrained image collections. In: Proceedings of
+    the IEEE/CVF International Conference on Computer Vision. pp. 15901–15911
+    (2023)
+64. Yin, F., Wang, Q.F., Zhang, X.Y., Liu, C.L.: Icdar 2013 chinese handwriting recog-
+    nition competition. In: International Conference on Document Analysis and Recog-
+    nition. pp. 1464–1470 (2013)
+65. Zhang, L., Rao, A., Agrawala, M.: Adding conditional control to text-to-image
+    diffusion models. In: CVPR. pp. 3836–3847 (2023)
+66. Zhang, Y., Hooi, B.: Hipa: Enabling one-step text-to-image diffusion models via
+    high-frequency-promoting adaptation. arXiv (2023)
+67. Zhang, Y., Hooi, B., Hong, L., Feng, J.: Self-supervised aggregation of diverse ex-
+    perts for test-agnostic long-tailed recognition. In: NeurIPS. pp. 34077–34090 (2022)
+68. Zhang, Y., Hooi, B., Hu, D., Liang, J., Feng, J.: Unleashing the power of contrastive
+    self-supervised visual models via contrast-regularized fine-tuning. In: NeurIPS. pp.
+    29848–29860 (2021)
+69. Zhao, B., Tao, J., Yang, M., Tian, Z., Fan, C., Bai, Y.: Deep imitator: Handwriting
+    calligraphy imitation via deep attention networks. Pattern Recognition 104, 107080
+    (2020)
+70. Zhu, Y., Li, Z., Wang, T., He, M., Yao, C.: Conditional text image generation with
+    diffusion models. In: CVPR. pp. 14235–14245 (2023)
+71. Zhuang, Z., Liu, Z., Lam, K.M., Huang, S., Dai, G.: A new semi-automatic annota-
+    tion model via semantic boundary estimation for scene text detection. In: ICDAR.
+    pp. 257–273 (2021)
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation            19
+
+             Supplementary Material:
+      One-DM: One-Shot Diffusion Mimicker for
+           Handwritten Text Generation
+    We organize our supplementary material as follows.
+
+ – In Appendix A, we discuss several similar works, and review the related work
+   of diffusion methods in general image generation.
+ – In Appendix B, we describe more method details about the conditional dif-
+   fusion model of our One-shot Diffusion Mimcker (One-DM).
+ – In Appendix C, we provide more implementation details.
+ – In Appendix D, we report additional quantitative results, comparing our
+   One-DM with official VATr and HWT for generating 32-pixel high images.
+ – In Appendix E, we provide user study experiments.
+ – In Appendix F, we explore the generalization of our One-DM to style images
+   with various noisy backgrounds.
+ – In Appendix G, we assess the generation quality through OCR system.
+ – In Appendix H, we conduct failure case analysis.
+ – In Appendix I, we analyze the impact of different high-frequency filters,
+   style-content fusion mechanisms, and style sample lengths.
+ – In Appendix J, we provide more analysis experiments to explain the different
+   ink color in Figure 4 of Section 4.3.
+ – In Appendix K, we show more visual comparisons of handwritten text gen-
+   eration, covering English, Chinese, and Japanese scripts.
+
+
+A    More Related Work
+
+Discussion on several similar works. Our Laplacian contrastive learning
+LlapN CE differs from the CC loss [59] in one key aspect: LlapN CE is applied to
+high-frequency information Hs for enhancing handwriting style features, whereas
+the CC loss is applied to text images for extracting scene text content features.
+Ours is a specialized design for style extraction, where we find simply using
+LlapN CE on images leads to poor performance (cf. Table 3 in Section 4.3). The
+idea of using Hs also differs from prior work [35, 45]. We aim to enhance hand-
+writing style extraction, whereas [35] targets improving content representations
+of general images, and [45] aims to address domain shifts of scene texts.
+    Image diffsuion. The Denoising Diffusion Probabilistic Model (DDPM) [20],
+a typical representative of diffusion models, has gained extensive application in
+image generation task [6, 22, 33, 37, 43, 52, 53, 61, 65, 66]. To reduce computational
+expenses, latent diffusion model (LDM) [50] is introduced, executing diffusion
+steps in latent space rather than in pixel space, as done in DDPM. Furthermore,
+guided diffusion [11] incorporates an additional classifier to control the categories
+of synthesized images. After that, classifier-free diffusion model [21] explores the
+conditional image synthesis task without the separate classifier guidance. Re-
+cently, some text-guided image generation methods have been proposed, such as
+20             G. Dai et al.
+
+DALL-E3 [4], Stable Diffusion [50], GLIDE [43], and Imagen [53]. These methods
+employ pre-trained text encoders, such as CLIP [47] and BERT [10], to convert
+given text descriptions into comprehensive representations, thereby guiding the
+diffusion process to produce realistic and diverse images.
+    Different from general text-to-image generation tasks, the users’ handwriting
+style, as an abstract concept in nature, presents considerable challenges in its
+accurate depiction through text descriptions. In response to this, we introduce
+an innovative style-enhanced module that extracts discriminative style represen-
+tations from individual handwritings, which are then used as guiding conditions
+for the diffusion model.
+
+
+B         More Details of the Conditional Diffusion Model
+As described in Section 3.4, the training objective of our conditional diffusion
+model is:
+                      \label {loss} \mathcal {L}_{rec}\textbf {\small {=}}\mathbb {E}_{t,q} \left \| \mu _t(x_t,x_0)-\mu _{\theta }(x_t,g,t)\right \|_2^2.  (a)
+The derivation formula for µt (xt , x0 ), provided by Denoising Diffusion Proba-
+bilistic Models (DDPM) [20], is given by:
+
+                                               \label {gt} \mu _t(x_t,x_0)\textbf {\small {=}}\frac {\sqrt {\alpha _t}(1-\overline {\alpha }_{t-1})x_t+\sqrt {\overline {\alpha }_{t-1}}(1-\alpha _t)x_0}{1-\overline {\alpha }_t},                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             (b)
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 t
+where αt =1−βt , βt is a variance schedule, and αt =
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 Q
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       αi . Recall that µθ (xt , g, t)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         i=1
+also depends on xt , we can closely align µt (xt , x0 ) by configuring it in the fol-
+lowing manner:
+
+                        \label {fake} \mu _{\theta } (x_t,g,t)\text {\small {=}}\frac {\sqrt {\alpha _t}(1-\overline {\alpha }_{t-1})x_t+\sqrt {\overline {\alpha }_{t-1}}(1-\alpha _t)\hat {x}_{\theta }(x_t,g,t)}{1-\overline {\alpha }_t},                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   (c)
+
+where x̂θ (xt , g, t) is implemented by a U-Net [51] network designed to estimate x0
+from the noisy image xt conditioned on the guidance g at the time step t. Then,
+Eq. (a), when Eq. (b) and Eq. (c) are substituted into it, yields the following
+derivation:
+
+
+                                      \label {longeq} &\mathbb {E}_{t,q} \left \| \mu _t(x_t,x_0)-\mu _{\theta }(x_t,g,t)\right \|_2^2 \nonumber \\ \nonumber &=\mathbb {E}_{t,q}\Big \| \frac {\sqrt {\alpha _t}(1-\overline {\alpha }_{t-1})x_t+\sqrt {\overline {\alpha }_{t-1}}(1-\alpha _t)x_0}{1-\overline {\alpha }_t} \\ \nonumber & - \frac {\sqrt {\alpha _t}(1-\overline {\alpha }_{t-1})x_t+\sqrt {\overline {\alpha }_{t-1}}(1-\alpha _t)\hat {x}_{\theta }(x_t,g,t)}{1-\overline {\alpha }_t} \Big \|_2^2 \\ \nonumber &=\mathbb {E}_{t,q} \left \| \frac {\sqrt {\overline \alpha _{t-1}}(1-{\alpha }_t)}{1-\overline {\alpha }_t}(x_0 - \hat {x}_{\theta }(x_t,g,t)) \right \|_2^2 \\ &=\mathbb {E}_{t,q} \left [ \frac {\overline \alpha _{t-1}(1-\alpha _t)^2}{(1-\overline \alpha _t)^2}\left \|x_0 - \hat {x}_{\theta }(x_t,g,t) \right \|_2^2 \right ] .
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                (d)
+      One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation                                                     21
+
+In practice, DDPM observes enhanced training performance of the diffusion
+model when utilizing a simplified objective that omits the weighting term in
+Eq. (d):
+
+                             \mathcal {L}_{rec}=\mathbb {E}_{t,q} \left \|x_0 - \hat {x}_{\theta }(x_t,g,t) \right \|_2^2 .   (e)
+From this equation, we know that optimizing Lrec essentially involves training a
+U-Net x̂θ to reconstruct the original image x0 from its noise-altered version xt .
+    After training, during the diffusion generation process, our conditional dif-
+fusion model pθ (xt−1 |xt , g) progressively generates the desired handwritten text
+image conditioned on the guidance g, following Eq. (6):
+
+                         x_{t-1} = \mu _{\theta } (x_t,g,t) + \sqrt {\Sigma _{\theta }(x_t,g,t)}\epsilon ,                    (f)
+where we set Σθ (xt , g, t)=βt to untrained time-dependent constants and noise ϵ
+is randomly sampled from a pure normal distribution N (0, I), as done in DDPM.
+
+C      More Experimental Details
+C.1     More Implementation Details of Our One-DM
+Our approach incorporates three encoders: a content encoder featuring two stan-
+dard transformer layers, and both the high-frequency style encoder and the spa-
+tial style encoder, each equipped with three standard transformer layers. Fol-
+lowing the original Transformer architecture [8, 34, 58], each Transformer layer
+contains the multi-head attention with c = 512 dimensional states and 8 atten-
+tion heads. Similarly, in our style-content fusion module, the feature dimension
+of all the attention modules is set to 512, with 8 heads for each module. More-
+over, we apply sinusoidal positional encoding [58] to input tokens before feeding
+them to the Transformer encoder.
+    We adopt latent diffusion model (LDM) [50] to implement our conditional
+diffusion model pθ , which adopts a U-Net architecture [51] integrated with trans-
+former blocks to blend noise with the condition g. To conserve GPU memory and
+accelerate the training time, we streamline the U-Net by reducing the number
+of ResNet blocks and attention heads, as done in [44]. LDM takes the diffusion
+process into the latent space. Specifically, the LDM employs an autoencoder
+where an encoder E encoders the input image x into a lower dimensional latent
+representation z =E(x) while a decoder D converts the latent code back to the
+image space such that perceptually x e=D(z)=D(E(x)). Significantly, the encoder
+downsamples the image x ∈ RH×W ×3 to obtain the latent code z ∈ RH/8×W/8×4
+by a factor f =8. Thus, the U-Net x̂θ directly operates on a more compact repre-
+sentation, greatly saving runtime and computational cost. Regarding the specific
+implementation of the autoencoder, we adopt a powerful, pre-trained Variational
+Autoencoder (VAE)5 . During the training phase, we freeze the parameters of
+VAE and we set T = 1000 steps, and forward process variances are set to con-
+stants increasing linearly from β1 = 10−4 to βT = 0.02.
+5
+    https://huggingface.co/CompVis/stable-diffusion
+22       G. Dai et al.
+
+C.2     More Implementation Details of Compared Methods
+We use official implementations provided by authors for methods like GANwrit-
+ing [27], TS-GAN [9], and HiGAN+ [15] that are inherently capable of generating
+64-pixel high images. For VATr [46] and HWT [5], which produce 32-pixel high
+images, we simply modify their code by adding a convolution layer followed by an
+upsampling to enable 64-pixel image generation. To enable WordStylist [44] and
+GC-DDPM [12] to extract style patterns from one single style sample, we replace
+their writer-ID embedding layers with our spatial style encoder. We update the
+WordStylist [44] based on its official code and re-implement the GC-DDPM [12];
+both inherently generate images with a height of 64 pixels.
+
+C.3     More Details of the Comparisons with Industrial Methods
+We compare One-DM with text-to-image methods, DALL-E3 [4] and Stable
+Diffusion [50] (SD), and style transfer methods, Artbreeder6 and IP-Adapter7
+(IP-A.), as mentioned in Section 4.4. To ensure a fair comparison, for text-to-
+image models that require the text descriptions of style samples, we initially feed
+sample images into GPT-4 [1] to comprehend the handwriting style of the input
+samples, subsequently generating corresponding style prompts, such as “Tilted
+to the right, small curvature, very thin strokes, black color, some hyphenation”.
+After that, with the obtained style prompts and specific text content, we guide
+the text-to-image models to generate desired handwritten text images. For in-
+stance, if we want to generate a styled handwritten ‘great’, we feed the generated
+style prompts and the instruction prompt “Please generate a handwriting image
+with the text ‘great’ based on the above style description on white paper with-
+out any background decoration!” into the text-to-image models. As for the style
+transfer methods, they can directly handle the style and content images without
+any extra adaptation.
+
+C.4     More Details on Applications to Other Languages
+Dataset. For the Chinese handwritten character generation task, we use the
+ICDAR-2013 competition database [64], which contains 60 writers and 3755 dif-
+ferent Chinese characters for each writer. We randomly select 80% of the entire
+dataset as the training set, and the remaining 20% as the test set. As for source
+content images, we use the popular average Chinese font [25]. For the Japanese
+handwriting generation task, we conduct experiments on the UP_Kuchibue
+database [24] to evaluate the effectiveness of our method. This database con-
+tains about 340k online Japanese characters belonging to 103 writers. We render
+the offline character images by connecting coordinate points of online characters.
+For the source content images, we employ printed Japanese font. Similarly, we al-
+locate 80% of the entire dataset randomly for training and reserve the remaining
+20% for testing. In the experiments, we resize all images to 64 × 64.
+6
+     https://www.artbreeder.com/
+7
+     https://github.com/tencent-ailab/IP-Adapter
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation          23
+
+     Compared Methods. Since our One-DM can imitate any handwriting style
+and synthesize handwritten text with arbitrary content, it’s readily applicable
+to various handwriting tasks without requiring adjustments. We compare our
+One-DM with state-of-the-art few-shot handwritten text generation methods,
+i.e., GANwriting [27], HWT [5] and VATr [46] and diffusion-based method, i.e.
+WordStylist [44]. Our method and WordStylist require only one randomly sam-
+pled style sample as the style input, whereas other few-shot methods continue
+to use 15 samples. For all competitors, we follow their official experiment hyper-
+parameters to ensure they are all thoroughly trained.
+
+
+Table 7: Additional comparisons with official HWT and VATr on stylized handwritten
+text generation in terms of the FID score. The best results are in bold.
+
+                 Method             IV-S IV-U OOV-S OOV-U
+                 HWT [5]       106.97 108.84 109.45 114.10
+                 VATr [46]     88.20 91.11 98.57 102.22
+                 Ours (One-DM) 79.60 86.09 85.03 90.84
+
+
+
+
+D    Additional Comparisons with Official VATr and HWT
+
+To facilitate a more equitable comparison, we conduct experiments on the IAM
+dataset with a height of 32 pixels, as provided by VATr [46] and HWT [5] in
+their official repositories. Benefiting from our U-Net architecture, the size of the
+output images remains consistent with the input images, allowing our model to
+generate images with a height of 32 pixels without any modifications. We train
+our model with the same training data as used in VATr and HWT. For evalu-
+ation, we resize the generated images to a height of 64 while maintaining the
+aspect ratio of width, as suggested in VATr. We report the results of all methods
+across four settings, as shown in Table 7. From these quantitative results, we
+can observe that our One-DM significantly outperforms VATr and HWT across
+all four settings, further substantiating the superiority of our approach in syn-
+thesizing stylized handwritten text.
+
+
+E    User Studies
+
+User preference study. We first invite human participants with a college un-
+dergraduate education to evaluate the visual quality of synthesized handwritten
+text images in terms of style imitation, with the generated samples being from
+our method and state-of-the-art methods. At each time, we randomly select a
+writer from the IAM dataset, using their handwritten samples as style guidance,
+and employ identical text as content guidance, to direct all methods in generating
+24      G. Dai et al.
+
+                                     TS-GAN          GANwriting
+                        GC-DDPM
+                                            3.1% 7.0%             HiGAN+
+                                  9.3%
+                                                           8.7%
+
+
+
+           VATr   20.1%
+
+
+
+                                                                    29.6%
+                                                                            Ours
+                           11.0%
+                   HWT                      11.2%
+
+                                   WordStylist
+Fig. 9: User preference study with a comparison to state-of-the-art methods on hand-
+written text generation.
+
+
+candidate samples. Then, given three style references from the exemplar writer
+along with several candidates generated by different methods, participants are
+required to pick up the most similar candidate in style with the reference sam-
+ples. We repeat this procedure 30 times and finally collect 900 valid responses
+contributed by 30 volunteers. As shown in Figure 9, our method garners the
+most user preferences, demonstrating that our approach produces the highest
+quality samples in terms of style mimicry.
+
+
+Table 8: Confusion matrix(%) in user plausibility study. A classification accuracy of
+49.05% implies that our synthesized handwritten text images are difficult to distinguish
+from real images by human users.
+
+                                         Predicted Classification
+                            Actual
+                                         Real Fake Accuracy
+                            Real      30.22 19.78
+                                                        49.05
+                            Fake      31.17 18.83
+
+
+
+   User plausibility study. We further study whether the generated images
+from our One-DM are indistinguishable from the real handwriting samples by
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation        25
+
+     Style
+    Samples
+     HWT
+     VATr
+    One-DM
+
+              Fig. 10: Generated results conditioned on dirty style samples.
+
+conducting a user plausibility study. In this experiment, we initially present
+participants with 30 exemplary real handwritten samples. Subsequently, they are
+tasked with determining whether each given image is an authentic handwriting
+or a synthetic one, where each image is randomly drawn both from genuine
+training images and those synthesized by our method. We collect a total of 1800
+valid responses from 30 participants. We report the results as a confusion matrix
+in Table 8, We find that the classification accuracy is close to 50%, indicating
+that it turned into a random binary classification. This reveals that the images
+synthesized by our method are nearly perceived as plausible.
+
+F    Generalization to different style backgrounds
+To test the tolerance of our One-DM to background artifacts, we use images
+with various noisy backgrounds as style references. From Figure 10, we find
+that our one-DM still synthesizes high-quality handwritten text images under
+style references with dirty backgrounds, demonstrating the robustness of our
+style extraction to various style backgrounds.
+
+G     Evaluation of OCR System
+To further assess the generation quality, we use the generated training sets by
+our One-DM and VATr to train an OCR system. As shown in Table 9, the
+recognizer [49] trained on our synthesized dataset outperforms VATr [46] by
+achieving lower character error rates (CER) and word error rates (WER) on
+both the real IAM test set and the CVL test set. Notably, our CER and WER
+performance on the CVL test set even approaches that of the recognizer trained
+on the real dataset.
+
+                Table 9: OCR performance on IAM and CVL test sets.
+
+                                         IAM                   CVL
+                Training data
+                                CER↓(%) WER↓(%) CER↓(%) WER↓(%)
+                Real dataset      4.98         13.52   16.85         22.81
+                VATr             26.98     60.43       30.84     49.59
+                Ours(One-DM)     11.69     25.55       17.03     23.52
+26         G. Dai et al.
+
+H       Analysis of Failure Cases
+We provide the generated long-tail characters (i.e. digits and punctuations) and
+out-of-charset Greek letters from the IAM dataset by our One-DM in Figure 11.
+One-DM occasionally struggles to generate long-tail characters with correct con-
+tents. For instance, as highlighted by red circles in Figure 11, due to the relative
+scarcity of numbers 7 and 9 in the dataset, the model erroneously generates sim-
+ilar English letters z and g, which are more common in the dataset. An effective
+solution is using an oversampling strategy to process long-tail characters during
+the training phase.
+
+
+
+                  Style           Content 1 ? 7 ! 5 & 9 ( ) ;        Δθωδμ
+                                   VATr
+                                    Ours
+
+     Fig. 11: Failure cases. Generated numbers, punctuations, and Greek characters.
+
+
+
+
+                     Table 10: Effect of different filters on the IAM dataset.
+
+         Filter                                                                   FID
+
+        Wavelet                                                                  105.68
+
+        Fourier                                                                  105.13
+
+         Sobel                                                                   104.32
+
+       Laplacian                                                                 102.75
+
+
+
+
+I     More Ablation Experiments on IAM Dataset
+Effect of different high-frequency filters. We conduct ablation experiments
+to evaluate the effect of different high-frequency filters. As shown in Table 10, we
+find that Laplacian filter, compared to other filters, extracts more accurate and
+more complete character contours, achieving the best generation performance
+in terms of FID in OOV-U setting. More high-frequency results extracted by
+Laplacian filter are provided in Figure 15. We can observe that our Laplacian
+filter can consistently extract high-frequency components in all samples.
+     Discussion on different style-content fusion mechanisms. The rea-
+son that we design the style-content fusion module based on cross-attention
+is because of its effectiveness in merging content and style to guide the diffu-
+sion model. Previous diffusion-based HTG methods [12, 44, 70] fuse content and
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation              27
+
+style either by concatenation or by injecting style into the timestep embedding.
+However, they perform much worse than our style-content fusion module when
+ablating the fusion module (FID↓: Ours-102.75 vs. Ours with Concat-104.81 vs.
+Ours with Timestep-104.26) under OOV-U setting in the IAM dataset.
+
+
+
+                  122                           The lower FID is better
+                  118
+                  114
+              FID 110
+                  106
+                  102
+                   98 1         2      3    4     5   6            7
+                                     Reference Length
+Fig. 12: Effect of the length of style sample (i.e., the number of letters in a word) on
+the IAM dataset under the OOV-U setting. Here, we set the maximum length to 7,
+as 7 is the longest length among the handwritten samples provided by some writers in
+the IAM test set.
+
+
+    Ablation on the Length of Style Reference. We perform ablation ex-
+periments on the IAM dataset to explore how the length of the one-shot style
+reference (i.e., the number of letters in a word) affects the performance of our
+method. Specifically, during the generation process, we randomly select hand-
+written samples of specific lengths as style references and report the quanti-
+tative results under the OOV-U setting in Figure 12. From these results, we
+observe that performance gradually improves as length increases. Importantly,
+when samples longer than four are used as style references, the model’s perfor-
+mance tends to stabilize. Therefore, we recommend users provide style samples
+longer than four letters when using our generation model. It’s important to em-
+phasize that the model’s performance is notably poor when the reference length is
+one. The reference sample of length one means a single letter and cannot provide
+style information like cursive connections, resulting in decreased performance.
+This can be alleviated by using samples longer than one as style references.
+
+
+J    Discussion on Different Ink Color
+
+As described in Section 4.1, our One-DM randomly selects a style reference from
+the target writer when generating each handwritten text. This leads our model
+to generate results with inconsistent ink colors since the sampled reference may
+28           G. Dai et al.
+
+
+     Style
+
+     Ours
+                 (a) Conditioned on a fixed sample   (b) Conditioned on random samples
+
+                 Fig. 13: Generated results by our One-DM on IAM dataset.
+
+
+                  Style
+
+                 HWT
+
+                  VATr
+
+                  Ours
+
+
+              Fig. 14: Comparisons with VATr and HWT on one-shot generation.
+
+
+have different ink colors (cf. the second and fourth columns of “style examples" in
+Figure 4 of Section 4.2). When conditioned on a fixed style reference or provided
+with consistent ink color samples, our model can generate uniform ink colors, as
+shown in Figure 13(a-b). In contrast, VATr and HWT generate color-consistent
+outputs in Figure 4 of Section 4.2 since they require 15 reference samples to
+obtain an average style. However, when given only one reference sample, they
+tend to produce poor results, as shown in Figure 14.
+
+
+K        More Qualitative Comparisons
+K.1          English Handwritten Text Generation
+From Figure 16 to Figure 19, we show more qualitative comparisons between
+our proposed One-DM and the previous state-of-the-art works, i.e., TS-GAN [9],
+GANwriting [27], HiGAN+ [15], GC-DDPM [12], WordStylist [44], HWT [5] and
+VATr [46]. To ensure a fair comparison, we utilize identical textual content for all
+methods, as displayed in the rows “Textual content” of each figure. Each figure’s
+rows of “Style samples” showcase style examples from different writers. Subse-
+quent rows are dedicated to showcasing the generated results from competitors
+and our One-DM. Figure 16 shows that TS-GAN and GANwriting struggle to
+capture the character slant of the reference samples, while diffusion-based meth-
+ods (i.e., GC-DDPM and WordStylist) tend to produce results with noticeable
+background noise. The cursive joins in generated samples by HiGAN+, HWT,
+and VATr occasionally lack realism, as shown in Figure 17. VATr and HWT
+sometimes fail to accurately capture the initial stroke details of characters, as
+evident from Figure 18. More interestingly, from Figure 19, we can observe that
+the internal colors of strokes generated by HiGAN+, HWT, and VATr are typi-
+cally uniform. Conversely, our method is capable of more realistically emulating
+the gradient effects of stroke colors found in real samples.
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation       29
+
+K.2   Chinese Handwriting Generation
+
+We provide more qualitative comparisons on handwritten Chinese character gen-
+eration with GANwriting [27], HWT [5], VATr [46], and WordStylist [44] in Fig-
+ure 20 to Figure 22. The “Source” rows in each figure display standard Chinese
+characters varying in content, while each “Target” row showcases real characters
+from the same writer. These results clearly show that the handwritten samples
+synthesized by our method (rows of “Ours”) are the most competitive in terms
+of style imitation (e.g., stroke color) and character structure preservation.
+
+
+K.3   Japanese Handwriting Generation
+In Figure 23 to Figure 25, we show more visual results with a comparison to
+GANwriting [27], HWT [5], VATr [46], and WordStylist [44] on Japanese hand-
+writing generation. Similarly, in each figure, the “Source” rows feature Japanese
+standard characters with diverse content, whereas each “Target” row exhibits
+real characters from the same author. From these results, we can observe that
+GANwriting (rows of “GANw.”) often produces characters that are incomplete
+and prone to missing strokes. HWT and VATr, on the other hand, generate char-
+acters that are very blurry, with the content of the characters being distorted.
+WordStylist struggles to generate stroke details consistent with the target sam-
+ple. Compared with the competitors, our method (rows of “Ours”) accurately
+reproduces the complete structure of handwritten Japanese characters (particu-
+larly the stroke details) and replicates the style patterns of real characters.
+30     G. Dai et al.
+
+
+
+
+      Handwriting
+       Samples
+
+
+
+
+     High-frequency
+      Components
+
+
+
+
+      Handwriting
+       Samples
+
+
+
+
+     High-frequency
+      Components
+
+
+
+
+      Handwriting
+       Samples
+
+
+
+
+     High-frequency
+      Components
+
+
+
+         Fig. 15: High-frequency information extracted by Laplacian filter.
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation      31
+
+
+       Textual   Friendship is both a source of pleasure and
+       content   a component of good body
+        Style
+       samples
+
+
+      TS-GAN
+
+
+       GANw.
+
+
+      HiGAN+
+
+
+       GC-DD.
+
+
+       WordS.
+
+
+        HWT
+
+
+        VATr
+
+
+        Ours
+
+       Textual   We never really grow up we just learned
+       content   to pretend in front of others
+        Style
+       samples
+
+      TS-GAN
+
+
+       GANw.
+
+
+      HiGAN+
+
+
+      GC-DD.
+
+
+       WordS.
+
+
+        HWT
+
+
+        VATr
+
+
+        Ours
+
+
+Fig. 16: Additional comparisons between our method with state-of-the-art methods
+on English handwritten text generation.
+32     G. Dai et al.
+
+
+       Textual   The way to win an atomic war is to
+       content   make certain it never starts
+        Style
+       samples
+
+      TS-GAN
+
+
+       GANw.
+
+
+      HiGAN+
+
+
+       GC-DD.
+
+
+       WordS.
+
+
+        HWT
+
+
+        VATr
+
+
+        Ours
+
+
+       Textual    Looking into your past is the only way
+       content    to discover your future
+        Style
+       samples
+
+
+      TS-GAN
+
+
+       GANw.
+
+
+      HiGAN+
+
+
+       GC-DD.
+
+
+       WordS.
+
+
+        HWT
+
+
+        VATr
+
+
+        Ours
+
+
+
+Fig. 17: Additional comparisons between our method with state-of-the-art methods
+on English handwritten text generation.
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation      33
+
+
+
+
+       Textual   Send a wise man on an errand and say nothing to him
+       content
+        Style
+       samples
+
+       GANw.
+
+
+       HiGAN+
+
+
+        WordS.
+
+
+        HWT
+
+
+        VATr
+
+
+         Ours
+
+
+       Textual
+       content
+                 Keep a positive attitude and things will fall your way
+
+        Style
+       samples
+
+       GANw.
+
+
+       HiGAN+
+
+
+        WordS.
+
+
+        HWT
+
+
+        VATr
+
+
+         Ours
+
+
+Fig. 18: Additional comparisons between our method with state-of-the-art methods
+on English handwritten text generation.
+34     G. Dai et al.
+
+
+
+
+      Textual   The world has kissed my soul with its
+      content   pain, asking for its return in songs
+       Style
+      samples
+
+      GANw.
+
+
+      HiGAN+
+
+
+      WordS.
+
+
+       HWT
+
+
+       VATr
+
+
+       Ours
+
+      Textual   The reason why a great man is great is
+      content   that he resolves to be a great man
+       Style
+      samples
+
+      GANw.
+
+
+      HiGAN+
+
+
+      WordS.
+
+
+       HWT
+
+
+       VATr
+
+
+        Ours
+
+
+Fig. 19: Additional comparisons between our method with state-of-the-art methods
+on English handwritten text generation.
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation      35
+
+
+     Source
+
+     GANw.
+
+      HWT
+
+      VATr
+
+     WordS.
+
+      Ours
+
+     Target
+
+
+     Source
+
+     GANw.
+
+      HWT
+
+      VATr
+
+     WordS.
+
+      Ours
+
+     Target
+
+
+     Source
+
+     GANw.
+
+      HWT
+
+      VATr
+
+     WordS.
+
+      Ours
+
+     Target
+
+Fig. 20: Additional comparisons between our method with state-of-the-art methods
+on Chinese handwriting generation.
+36     G. Dai et al.
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+Fig. 21: Additional comparisons between our method with state-of-the-art methods
+on Chinese handwriting generation.
+    One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation      37
+
+
+     Source
+
+    GANw.
+
+     HWT
+
+      VATr
+
+     WordS.
+
+      Ours
+
+     Target
+
+
+     Source
+
+    GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+      Ours
+
+     Target
+
+
+     Source
+
+    GANw.
+
+     HWT
+
+      VATr
+
+     WordS.
+
+      Ours
+
+     Target
+
+Fig. 22: Additional comparisons between our method with state-of-the-art methods
+on Chinese handwriting generation.
+38     G. Dai et al.
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+Fig. 23: Additional comparisons between our method with GANwriting, HWT, VATr,
+and WordStylist on Japanese handwriting generation.
+   One-DM: One-Shot Diffusion Mimicker for Handwritten Text Generation     39
+
+
+    Source
+
+    GANw.
+
+     HWT
+
+     VATr
+
+    WordS.
+
+     Ours
+
+     Target
+
+
+    Source
+
+    GANw.
+
+     HWT
+
+     VATr
+
+    WordS.
+
+     Ours
+
+     Target
+
+
+    Source
+
+    GANw.
+
+     HWT
+
+     VATr
+
+    WordS.
+
+     Ours
+
+     Target
+
+Fig. 24: Additional comparisons between our method with GANwriting, HWT, VATr,
+and WordStylist on Japanese handwriting generation.
+40     G. Dai et al.
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+
+     Source
+
+     GANw.
+
+     HWT
+
+     VATr
+
+     WordS.
+
+     Ours
+
+     Target
+
+Fig. 25: Additional comparisons between our method with GANwriting, HWT, VATr,
+and WordStylist on Japanese handwriting generation.
+

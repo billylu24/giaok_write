@@ -1,0 +1,16 @@
+torch==2.14.0+cu130
+torchvision==0.29.0+cu130
+numpy==1.26.4
+pillow==11.3.0
+diffusers==0.22.0
+transformers==4.44.2
+accelerate==0.23.0
+huggingface-hub==0.25.2
+pyyaml==6.0.3
+opencv-python-headless==4.10.0.84
+info-nce-pytorch==0.1.4
+kornia==0.8.3
+fonttools==4.66.1
+pygame==2.6.1
+tensorboard==2.21.0
+matplotlib==3.9.4
