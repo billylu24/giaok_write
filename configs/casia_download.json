@@ -1,0 +1,25 @@
+{
+  "dataset": "CASIA-HWDB1.1",
+  "original_source": "https://nlpr.ia.ac.cn/databases/handwriting/Offline_database.html",
+  "download_page": "https://nlpr.ia.ac.cn/databases/handwriting/Download.html",
+  "transport_source": "https://github.com/AND-Q/HWDB1.1-/releases/tag/datasets",
+  "transport_is_official": false,
+  "checksum_note": "SHA-256 from mirror GitHub release API; official-origin checksum unavailable. Validate structure, counts and writer split independently.",
+  "official_access_note": "Direct origin HTTP/HTTPS requests timed out on 2026-10-09; use publicly accessible release mirror for transport.",
+  "resources": [
+    {
+      "name": "HWDB1.1trn_gnt.zip",
+      "size": 1919025714,
+      "sha256": "1e00a630613cd796423710fc8b438e7176a4a8fef8dd25966f20940076dce817",
+      "url": "https://github.com/AND-Q/HWDB1.1-/releases/download/datasets/HWDB1.1trn_gnt.zip",
+      "asset_id": 493824551
+    },
+    {
+      "name": "HWDB1.1tst_gnt.zip",
+      "size": 482768010,
+      "sha256": "1d5060803574ac10c743b12e621de3cbbfd1e95fe69426da570f492e5cd5ee08",
+      "url": "https://github.com/AND-Q/HWDB1.1-/releases/download/datasets/HWDB1.1tst_gnt.zip",
+      "asset_id": 493845053
+    }
+  ]
+}

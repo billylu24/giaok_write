@@ -1,0 +1,49 @@
+{
+  "status": "completed",
+  "label": "before",
+  "checkpoint": "checkpoints/fontdiffuser",
+  "checkpoint_sha256": {
+    "unet": "6bde1920ac8d843edbfffa6e6befedc5da39f753b927ce272cfc85cf99dcbfdb",
+    "style_encoder": "82eb56abc37ebf7e662d1141a45d8a54ad4bc0ee8aa749c4bb7bc7bddb6cca46",
+    "content_encoder": "e5b52582473579031bd0f935abbb9a3e5cb3727dccc25e75f77d1f41d3cbb3ff"
+  },
+  "torch": "2.14.0+cu130",
+  "inference_steps": 20,
+  "guidance_scale": 7.5,
+  "validation": {
+    "samples": 32,
+    "generated_ocr_exact": 0.96875,
+    "real_handwriting_ocr_exact": 0.78125,
+    "generated_ocr_on_real_ocr_correct_subset": 1.0,
+    "real_ocr_correct_subset_size": 25,
+    "mean_sampling_seconds": 1.2257590214712764,
+    "mean_pixel_mae": 0.10722073379771468,
+    "blank_outputs": 0,
+    "metric_note": "OCR is a generic recognition proxy; its real-handwriting accuracy limits interpretation. Pixel MAE is not content accuracy or an independent style score."
+  },
+  "test_random": {
+    "samples": 64,
+    "generated_ocr_exact": 0.953125,
+    "real_handwriting_ocr_exact": 0.5625,
+    "generated_ocr_on_real_ocr_correct_subset": 1.0,
+    "real_ocr_correct_subset_size": 36,
+    "mean_sampling_seconds": 3.0062778387364233,
+    "mean_pixel_mae": 0.11149593843613835,
+    "blank_outputs": 0,
+    "metric_note": "OCR is a generic recognition proxy; its real-handwriting accuracy limits interpretation. Pixel MAE is not content accuracy or an independent style score."
+  },
+  "test_gallery": {
+    "samples": 21,
+    "generated_ocr_exact": 1.0,
+    "real_handwriting_ocr_exact": 0.7619047619047619,
+    "generated_ocr_on_real_ocr_correct_subset": 1.0,
+    "real_ocr_correct_subset_size": 16,
+    "mean_sampling_seconds": 2.9418611161430213,
+    "mean_pixel_mae": 0.10888932926565686,
+    "blank_outputs": 0,
+    "metric_note": "OCR is a generic recognition proxy; its real-handwriting accuracy limits interpretation. Pixel MAE is not content accuracy or an independent style score."
+  },
+  "peak_allocated_gpu_bytes": 846419456,
+  "OCR": "rapidocr-onnxruntime 1.4.4, bundled Chinese PP-OCRv4 recognizer, recognition-only CPU",
+  "data_publishing": "Real reference and real target images are private/local; generated images and numerical records are public."
+}

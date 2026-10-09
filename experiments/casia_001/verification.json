@@ -1,0 +1,16 @@
+{
+  "reference_sensitivity_generated_images": 18,
+  "status": "passed",
+  "writer_disjoint": true,
+  "training_steps": 5000,
+  "validation_records": 11,
+  "paired_cases": 117,
+  "generated_images_verified": 234,
+  "checks": [
+    "counts",
+    "checkpoint_selection",
+    "pairing",
+    "PNG_integrity",
+    "SHA256"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "character_count": 3755,
+  "sample_counts": {
+    "train": 807972,
+    "validation": 89786,
+    "test": 223991
+  },
+  "writer_counts": {
+    "train": 216,
+    "validation": 24,
+    "test": 60
+  },
+  "duplicate_label_writers": 25,
+  "duplicate_records_beyond_first": 308,
+  "resolution": 96,
+  "writer_disjoint": true,
+  "gnt_format": "Little-endian uint32 size; two GB code bytes; little-endian uint16 width/height; one grayscale byte per pixel.",
+  "errors_resolved": [
+    "Training ZIP wraps a nested ALZ; extracted with pinned unalz.",
+    "Some writers have repeated characters; keep original records and ensure style references differ in character."
+  ]
+}

@@ -1,0 +1,33 @@
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Load the down block  DownBlock2D
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  DownBlock2D
+Load the up block  UpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  UpBlock2D
+Param count for Ds initialized parameters: 20591296
+Get CG-GAN Style Encoder!
+Param count for Ds initialized parameters: 1187008
+Get CG-GAN Content Encoder!
+{"completed": 1, "total": 117, "target": "娩", "prediction": "娩", "gt_prediction": "妮"}
+{"completed": 11, "total": 117, "target": "叔", "prediction": "叔", "gt_prediction": "叔"}
+{"completed": 21, "total": 117, "target": "梨", "prediction": "梨", "gt_prediction": "梨"}
+{"completed": 31, "total": 117, "target": "滑", "prediction": "滑", "gt_prediction": "滑"}
+{"completed": 41, "total": 117, "target": "注", "prediction": "注", "gt_prediction": "注"}
+{"completed": 51, "total": 117, "target": "绒", "prediction": "绒", "gt_prediction": "绒"}
+{"completed": 61, "total": 117, "target": "谩", "prediction": "谩", "gt_prediction": "漫"}
+{"completed": 71, "total": 117, "target": "述", "prediction": "述", "gt_prediction": "述"}
+{"completed": 81, "total": 117, "target": "虚", "prediction": "虚", "gt_prediction": "虚"}
+{"completed": 91, "total": 117, "target": "呀", "prediction": "呀", "gt_prediction": "呀"}
+{"completed": 101, "total": 117, "target": "我", "prediction": "我", "gt_prediction": "我"}
+{"completed": 111, "total": 117, "target": "湖", "prediction": "湖", "gt_prediction": "湖"}
+COMPLETE {"status": "completed", "label": "after", "checkpoint": "experiments/casia_001/checkpoints/best", "checkpoint_sha256": {"unet": "7b76334ae02a52b17383b9cb841f5ae9551fe3517a79fdf073db3d46eba44888", "style_encoder": "8b89a527e2783f823751a82dcf822448dac8a90761db8f1805ed0716bc4777c3", "content_encoder": "1df801d1d314fd97103d585bb1318924c5a7bdf5243378629b567e0662463ee2"}, "torch": "2.14.0+cu130", "inference_steps": 20, "guidance_scale": 7.5, "validation": {"samples": 32, "generated_ocr_exact": 0.96875, "real_handwriting_ocr_exact": 0.78125, "generated_ocr_on_real_ocr_correct_subset": 1.0, "real_ocr_correct_subset_size": 25, "mean_sampling_seconds": 1.1006768566230676, "mean_pixel_mae": 0.10334016111508261, "blank_outputs": 0, "metric_note": "OCR is a generic recognition proxy; its real-handwriting accuracy limits interpretation. Pixel MAE is not content accuracy or an independent style score."}, "test_random": {"samples": 64, "generated_ocr_exact": 0.90625, "real_handwriting_ocr_exact": 0.5625, "generated_ocr_on_real_ocr_correct_subset": 1.0, "real_ocr_correct_subset_size": 36, "mean_sampling_seconds": 1.0925743451734888, "mean_pixel_mae": 0.10751812393975241, "blank_outputs": 0, "metric_note": "OCR is a generic recognition proxy; its real-handwriting accuracy limits interpretation. Pixel MAE is not content accuracy or an independent style score."}, "test_gallery": {"samples": 21, "generated_ocr_exact": 1.0, "real_handwriting_ocr_exact": 0.7619047619047619, "generated_ocr_on_real_ocr_correct_subset": 1.0, "real_ocr_correct_subset_size": 16, "mean_sampling_seconds": 1.0922455100933024, "mean_pixel_mae": 0.111688409931874, "blank_outputs": 0, "metric_note": "OCR is a generic recognition proxy; its real-handwriting accuracy limits interpretation. Pixel MAE is not content accuracy or an independent style score."}, "peak_allocated_gpu_bytes": 846419456, "OCR": "rapidocr-onnxruntime 1.4.4, bundled Chinese PP-OCRv4 recognizer, recognition-only CPU", "data_publishing": "Real reference and real target images are private/local; generated images and numerical records are public."}

@@ -1,0 +1,13 @@
+{
+  "characters": {
+    "湖": true,
+    "海": true,
+    "明": true,
+    "好": true,
+    "我": true,
+    "清": true,
+    "永": true,
+    "鑫": false
+  },
+  "note": "鑫 is outside the 3755-character CASIA-HWDB1.1 label set and is excluded from in-vocabulary metrics."
+}

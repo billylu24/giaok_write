@@ -7,3 +7,6 @@ vendor/
 .cache/
 *.part
 experiments/**/global_step_*/
+data/
+experiments/**/checkpoints/
+experiments/**/private/

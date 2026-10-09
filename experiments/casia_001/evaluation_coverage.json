@@ -1,0 +1,22 @@
+{
+  "all_evaluation_targets_in_training_vocabulary": true,
+  "training_character_classes": 3755,
+  "evaluation_groups": {
+    "validation": {
+      "cases": 32,
+      "distinct_writers": 20,
+      "distinct_targets": 32
+    },
+    "test_random": {
+      "cases": 64,
+      "distinct_writers": 40,
+      "distinct_targets": 64
+    },
+    "test_gallery": {
+      "cases": 21,
+      "distinct_writers": 3,
+      "distinct_targets": 7
+    }
+  },
+  "protocol": "Unseen writers and target character absent from reference; not unseen character classes."
+}

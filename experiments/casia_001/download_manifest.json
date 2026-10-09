@@ -1,0 +1,48 @@
+{
+  "dataset": "CASIA-HWDB1.1",
+  "original_source": "https://nlpr.ia.ac.cn/databases/handwriting/Offline_database.html",
+  "download_page": "https://nlpr.ia.ac.cn/databases/handwriting/Download.html",
+  "transport_source": "https://github.com/AND-Q/HWDB1.1-/releases/tag/datasets",
+  "transport_is_official": false,
+  "checksum_note": "SHA-256 from mirror GitHub release API; official-origin checksum unavailable. Validate structure, counts and writer split independently.",
+  "official_access_note": "Direct origin HTTP/HTTPS requests timed out on 2026-10-09; use publicly accessible release mirror for transport.",
+  "resources": [
+    {
+      "name": "HWDB1.1trn_gnt.zip",
+      "size": 1919025714,
+      "sha256": "1e00a630613cd796423710fc8b438e7176a4a8fef8dd25966f20940076dce817",
+      "url": "https://github.com/AND-Q/HWDB1.1-/releases/download/datasets/HWDB1.1trn_gnt.zip",
+      "asset_id": 493824551,
+      "verified_sha256": "1e00a630613cd796423710fc8b438e7176a4a8fef8dd25966f20940076dce817",
+      "gnt_files": 0,
+      "uncompressed_bytes": 1918732934,
+      "archive_bytes": 1919025714,
+      "download_seconds": 273.70700454711914,
+      "nested_alz_members": [
+        "HWDB1.1trn_gnt.alz"
+      ],
+      "gnt_files_after_nested_extraction": 240
+    },
+    {
+      "name": "HWDB1.1tst_gnt.zip",
+      "size": 482768010,
+      "sha256": "1d5060803574ac10c743b12e621de3cbbfd1e95fe69426da570f492e5cd5ee08",
+      "url": "https://github.com/AND-Q/HWDB1.1-/releases/download/datasets/HWDB1.1tst_gnt.zip",
+      "asset_id": 493845053,
+      "verified_sha256": "1d5060803574ac10c743b12e621de3cbbfd1e95fe69426da570f492e5cd5ee08",
+      "gnt_files": 60,
+      "uncompressed_bytes": 1388868409,
+      "archive_bytes": 482768010,
+      "download_seconds": 115.64211201667786,
+      "nested_alz_members": []
+    }
+  ],
+  "status": "downloaded_and_checksum_verified",
+  "extraction": {
+    "tool": "kippler/unalz",
+    "commit": "457884d21962caa12085bfb6ec5bd12f3eb93c00",
+    "license": "zlib License",
+    "training_writer_gnt_files": 240,
+    "test_writer_gnt_files": 60
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "purpose": "Final code/config snapshot for the first CASIA run, including post-run diagnostics and reporting.",
+  "files": {
+    "configs/casia_001.json": "13ea870fbe3f198ba4b0bf69fa421f248a562729d92a71a29b54d0ec65dce4ea",
+    "configs/casia_download.json": "857289524a399c0199654c6bff32a3fcaa2efa2d9bcdcfc1224cc77352053955",
+    "handwriting/__init__.py": "0c80edbe21f58b734b1c5f864dcaffde637e991e5b2bc7c9f3889860bbc13411",
+    "handwriting/casia.py": "9533005e67ec18f2e5926be2c889f6f66b5d782c1648b3122f1139fd26969a3b",
+    "handwriting/gnt.py": "63553be456e400654997dc6964227c164b886c9e708a36f2fae197e438580a2b",
+    "requirements-lock.txt": "2b2ab707519f338e9c816ac94ce6d69005ef8afc1e824e3c399bea39287604d7",
+    "scripts/build_casia_evaluation.py": "1adf3c9c2f3c4ba20d359cbb783ada70bf5f089bfaf7aa9dd5e77abcae926243",
+    "scripts/check_casia_reference_sensitivity.py": "052b7296c3c70bc0c6efc3c68b9169195fb7be138d0bfeef2beb5d7a564886b8",
+    "scripts/download_casia.py": "a52bbfade50f6ef1ed6c8926e2c84fe175b64c48e016f07d2667cf78d65763be",
+    "scripts/evaluate_casia.py": "304f315f2e0bd439099a14a8f4dbff1c2aeae4febfb9c66f83b3714c109a530f",
+    "scripts/extract_casia_train.sh": "558c767c0a1b76bd2fb5d13acc9d0fca66e390ea0114abdb698cd0df91aad988",
+    "scripts/prepare_casia.py": "86d48d282eac96044c8a085b766a2515a3224ff16df1b823f415111db02dbacb",
+    "scripts/run_casia_pipeline.sh": "8443daa828e45e9983ba8b0154907cc9378a9f088b3df629a8ff701435ff17d8",
+    "scripts/summarize_casia.py": "dc0c9051a294ce5a50119cae60d7dcfb39ebebb9be408d2d1a56e8813cdb31d6",
+    "scripts/train_casia.py": "42c36c820f0c455ea18c20cdb6316ac090b3280e9ba240ecfb0218a45e8dc4d9",
+    "scripts/verify_casia_results.py": "0b9b84fb2ed7ed55fc6a07ed4bdc63ce360ae9d6917682baf3b0181e7eaa78fe"
+  }
+}

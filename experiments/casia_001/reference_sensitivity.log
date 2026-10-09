@@ -1,0 +1,46 @@
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+/home/giaok/PycharmProjects/giaok_write/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:88: FutureWarning: Accessing config attribute `style_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'style_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.style_encoder'.
+  style_img_feature, _, style_residual_features = self.style_encoder(style_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:94: FutureWarning: Accessing config attribute `content_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'content_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.content_encoder'.
+  content_img_feture, content_residual_features = self.content_encoder(content_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:97: FutureWarning: Accessing config attribute `content_encoder` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'content_encoder' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.content_encoder'.
+  style_content_feature, style_content_res_features = self.content_encoder(style_images)
+/home/giaok/PycharmProjects/giaok_write/vendor/FontDiffuser/src/model.py:102: FutureWarning: Accessing config attribute `unet` directly via 'FontDiffuserModelDPM' object attribute is deprecated. Please access 'unet' over 'FontDiffuserModelDPM's config object instead, e.g. 'unet.config.unet'.
+  out = self.unet(
+Load the down block  DownBlock2D
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  DownBlock2D
+Load the up block  UpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  UpBlock2D
+Param count for Ds initialized parameters: 20591296
+Get CG-GAN Style Encoder!
+Param count for Ds initialized parameters: 1187008
+Get CG-GAN Content Encoder!
+before {"\u6e56": {"generated_pairwise_pixel_mae": 0.05287006778019849, "reference_pairwise_pixel_mae": 0.0653390522875817}, "\u6d77": {"generated_pairwise_pixel_mae": 0.05220588235294118, "reference_pairwise_pixel_mae": 0.0653390522875817}, "\u6c38": {"generated_pairwise_pixel_mae": 0.05853209725248124, "reference_pairwise_pixel_mae": 0.0653390522875817}}
+Load the down block  DownBlock2D
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  MCADownBlock2D
+The style_attention cross attention dim in Down Block 1 layer is 1024
+The style_attention cross attention dim in Down Block 2 layer is 1024
+Load the down block  DownBlock2D
+Load the up block  UpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  StyleRSIUpBlock2D
+Load the up block  UpBlock2D
+Param count for Ds initialized parameters: 20591296
+Get CG-GAN Style Encoder!
+Param count for Ds initialized parameters: 1187008
+Get CG-GAN Content Encoder!
+after {"\u6e56": {"generated_pairwise_pixel_mae": 0.023771389342774143, "reference_pairwise_pixel_mae": 0.0653390522875817}, "\u6d77": {"generated_pairwise_pixel_mae": 0.04438052227063665, "reference_pairwise_pixel_mae": 0.0653390522875817}, "\u6c38": {"generated_pairwise_pixel_mae": 0.025764040183974823, "reference_pairwise_pixel_mae": 0.0653390522875817}}

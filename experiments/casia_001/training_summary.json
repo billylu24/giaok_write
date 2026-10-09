@@ -1,0 +1,35 @@
+{
+  "status": "completed",
+  "steps": 5000,
+  "max_steps": 5000,
+  "training_seconds": 832.5291431810183,
+  "best_validation_step": 4500,
+  "baseline_validation": {
+    "step": 0,
+    "total": 0.10273103765212,
+    "diffusion": 0.016638762768707238,
+    "perceptual": 8.605362825095654,
+    "offset": 7.729799290245865e-05
+  },
+  "best_validation_loss": 0.05784416198730469,
+  "final_validation": {
+    "step": 5000,
+    "total": 0.0579986673546955,
+    "diffusion": 0.010313588431017706,
+    "perceptual": 4.768105693161488,
+    "offset": 8.044418223107641e-06
+  },
+  "final_checkpoint": "checkpoints/step_5000",
+  "checkpoint_sha256": {
+    "unet": "3197ac2684c74a6be491544e6d4e3a6d8021827e658dec715e1331a96627af11",
+    "style_encoder": "7a52ef3f2dadf7016db58a9b02e7bcfce776fcec97ad6559b816666c5a814fa7",
+    "content_encoder": "aec92ceca6d9642b0946ece80dd329ad773374ca6fe78a5d143cd671e7546c2a"
+  },
+  "optimizer_examples": 10000,
+  "train_dataset_samples": 807972,
+  "epochs_completed": 0,
+  "peak_allocated_gpu_bytes": 3317972480,
+  "peak_reserved_gpu_bytes": 3772776448,
+  "initialization": "Public pretrained FontDiffuser; shared CASIA training, not user adaptation",
+  "full_convergence_claimed": false
+}

@@ -41,6 +41,12 @@ python3 scripts/download_resources.py papers
 4. 下载代码与权重，确认字体路径。配置默认使用系统 Noto Serif CJK TTC 的简体中文 index=2。
 5. 执行基线脚本。脚本严格加载 state_dict；版本不兼容时应记录错误，不静默忽略权重。
 
-个人样本与完整 CASIA 数据暂未配置。短训练会首次下载约 528 MiB 的官方 VGG16 感知损失权重到 torch 缓存。
+CASIA-HWDB1.1 已下载并转换，首轮公共数据训练见 [CASIA 报告](../experiments/casia_001/REPORT.md)。个人样本尚未配置。短训练会首次下载约 528 MiB 的官方 VGG16 感知损失权重到 torch 缓存。
 
 绘图使用 matplotlib 3.9.4，并保持 numpy 1.26.4。安装新包时需保留现有版本约束。1000 步训练命令设置 OMP_NUM_THREADS=8；原官方代码与损失保持不变。
+
+## CASIA 环境增量
+
+识别辅助评估使用 rapidocr-onnxruntime 1.4.4、onnxruntime 1.31.0 和 OpenCV 4.11.0.86；实际环境保留 opencv-python-headless 4.10.0.84。完整包列表更新于根目录 `requirements-lock.txt`。Torch 的 `+cu130` 后缀按实际运行版本记录，安装仍需相应 CUDA 索引。
+
+数据下载、ALZ 解包、转换、训练及同条件评估入口见 [CASIA 运行计划](casia/RUN_PLAN.md)。ALZ 工具编译需要 gcc/g++、zlib 和 bzip2 开发头文件。原始数据和真实参考/目标图仅保存本地；GitHub 中的图片来自模型生成。

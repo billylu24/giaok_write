@@ -1,0 +1,70 @@
+{
+  "protocol": "Post-run diagnostic only; same target and seed per target across writers, reference character 人; no checkpoint tuning.",
+  "writers": [
+    "1241",
+    "1242",
+    "1243"
+  ],
+  "targets": [
+    "湖",
+    "海",
+    "永"
+  ],
+  "seeds": [
+    30000,
+    30001,
+    30002
+  ],
+  "results": {
+    "before": {
+      "湖": {
+        "generated_pairwise_pixel_mae": 0.05287006778019849,
+        "reference_pairwise_pixel_mae": 0.0653390522875817
+      },
+      "海": {
+        "generated_pairwise_pixel_mae": 0.05220588235294118,
+        "reference_pairwise_pixel_mae": 0.0653390522875817
+      },
+      "永": {
+        "generated_pairwise_pixel_mae": 0.05853209725248124,
+        "reference_pairwise_pixel_mae": 0.0653390522875817
+      }
+    },
+    "after": {
+      "湖": {
+        "generated_pairwise_pixel_mae": 0.023771389342774143,
+        "reference_pairwise_pixel_mae": 0.0653390522875817
+      },
+      "海": {
+        "generated_pairwise_pixel_mae": 0.04438052227063665,
+        "reference_pairwise_pixel_mae": 0.0653390522875817
+      },
+      "永": {
+        "generated_pairwise_pixel_mae": 0.025764040183974823,
+        "reference_pairwise_pixel_mae": 0.0653390522875817
+      }
+    }
+  },
+  "note": "Pairwise pixel response measures reference sensitivity, not writer-style fidelity. References have different pixels; all generated images only are public.",
+  "files_sha256": {
+    "after_1241_27704.png": "7342b86600880910fbde69c5f7b2e060e0435d1a85103184084e4a9ef81e8c85",
+    "after_1241_28023.png": "55c6e48f8d56c15ae7661e15f0baefc299f54e6cd9f9c1130a02cbea68d5ef31",
+    "after_1241_28246.png": "9a00c597427fb0b18904c27acc76adc070c9ee1bb5d995f246c7288f16e9c127",
+    "after_1242_27704.png": "3dbcca34c668ead191bec7db5ddf38ccb29cd83528b34c0c65c88f529ac77cfb",
+    "after_1242_28023.png": "6971efebd6d7004226a254d956925e6396b1647161dfb095d631540ff4d3d50f",
+    "after_1242_28246.png": "cd71e76bfcf4d2b4f8c81e1b023a64c0cefe99f7c3fef45f9c85f60f9f7d99b8",
+    "after_1243_27704.png": "504d262a55b3b7ba8ce84f8bd0691958dd2b4903294f22d91dd13d94439b6ace",
+    "after_1243_28023.png": "4e5880f246859f2ace5a76fb7317f4e7350a1180d2ad463ed8ae262d66ae298e",
+    "after_1243_28246.png": "442329d61cd5816ecece053e99a93a6796e0ffb5269ae7ffe7572abb2132e211",
+    "before_1241_27704.png": "2b60545c9e84ce31248f063869a496b1336d98e23b83de8d4c9d233881e87259",
+    "before_1241_28023.png": "dc081c9f99fb115ae5d26ec3a0edab4e6d9a0a07078379fc4bee5d7a34a5f50e",
+    "before_1241_28246.png": "5170a20829dd9ac424150b0ea1e3a1bb6642e3c20311ae9d4312db7b28ee4129",
+    "before_1242_27704.png": "4bc49d2e8b0e4c57630e39d3167abde0b1395958c5ae831ae0fa862642fb07c6",
+    "before_1242_28023.png": "8401463bb273af9b6b89d50b54e99712564cb97841e88f93ccca5330f03acfa0",
+    "before_1242_28246.png": "fd4c58933125df2e70486f79c5005ccc80f55cb44dfbd5474812911dc28ba1a8",
+    "before_1243_27704.png": "a9aac488ff57a9b181dcee1b5db93be9ce70e7eea376d10e229f33665f55e04e",
+    "before_1243_28023.png": "3cb8a9d846f995beae26b472bfab8963ee70acc7d1fe8c36ecbdcbd8f2adf891",
+    "before_1243_28246.png": "643c558460e680d2c5e4fdf5b6cb6be324b2c171db51dee135ef95c091e7dbcf",
+    "fixed_noise_comparison.png": "6e093eca8359f4b0c88ebd9e58008002abed60ae49578ece25a6b4e487914956"
+  }
+}

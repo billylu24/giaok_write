@@ -1,0 +1,44 @@
+{
+  "best": {
+    "step": 4500,
+    "selection": "fixed validation total loss",
+    "components": {
+      "content_encoder": {
+        "bytes": 4766639,
+        "sha256": "1df801d1d314fd97103d585bb1318924c5a7bdf5243378629b567e0662463ee2",
+        "local_path": "experiments/casia_001/checkpoints/best/content_encoder.pth"
+      },
+      "style_encoder": {
+        "bytes": 82411217,
+        "sha256": "8b89a527e2783f823751a82dcf822448dac8a90761db8f1805ed0716bc4777c3",
+        "local_path": "experiments/casia_001/checkpoints/best/style_encoder.pth"
+      },
+      "unet": {
+        "bytes": 315153911,
+        "sha256": "7b76334ae02a52b17383b9cb841f5ae9551fe3517a79fdf073db3d46eba44888",
+        "local_path": "experiments/casia_001/checkpoints/best/unet.pth"
+      }
+    }
+  },
+  "step_5000": {
+    "step": 5000,
+    "selection": "last training step",
+    "components": {
+      "content_encoder": {
+        "bytes": 4766639,
+        "sha256": "aec92ceca6d9642b0946ece80dd329ad773374ca6fe78a5d143cd671e7546c2a",
+        "local_path": "experiments/casia_001/checkpoints/step_5000/content_encoder.pth"
+      },
+      "style_encoder": {
+        "bytes": 82411217,
+        "sha256": "7a52ef3f2dadf7016db58a9b02e7bcfce776fcec97ad6559b816666c5a814fa7",
+        "local_path": "experiments/casia_001/checkpoints/step_5000/style_encoder.pth"
+      },
+      "unet": {
+        "bytes": 315153911,
+        "sha256": "3197ac2684c74a6be491544e6d4e3a6d8021827e658dec715e1331a96627af11",
+        "local_path": "experiments/casia_001/checkpoints/step_5000/unet.pth"
+      }
+    }
+  }
+}
